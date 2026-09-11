@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { TextGeometry } from "./libs/package/examples/jsm/geometries/TextGeometry.js";
+import { FontLoader } from "./libs/package/examples/jsm/loaders/FontLoader.js";
 
 const modelList = document.getElementById("modelList");
 const enterButton = document.getElementById("enterModelBtn");
@@ -112,7 +114,40 @@ function initHero() {
   addLimb(new THREE.Vector3(0.08, 0.1, 0), new THREE.Vector3(0.28, -0.55, 0));
   character.position.set(-2.8, 4.2, 0);
   scene.add(character);
-  fallback.classList.add("hidden");
+  const textGroup = new THREE.Group();
+  textGroup.position.set(0, 1.55, -0.4);
+  scene.add(textGroup);
+
+  new FontLoader().load("./js/libs/package/examples/fonts/typeface/helvetiker_regular.typeface.json", (font) => {
+    const headlineLines = [
+      { text: "DIGITAL PRODUCTS", size: 0.54, color: 0xf7f3ed },
+      { text: "WITH A SPATIAL POINT OF VIEW", size: 0.23, color: 0xf39a63 }
+    ];
+    headlineLines.forEach((line, index) => {
+      const geometry = new TextGeometry(line.text, {
+        font,
+        size: line.size,
+        height: 0.045,
+        curveSegments: 5,
+        bevelEnabled: true,
+        bevelThickness: 0.01,
+        bevelSize: 0.006,
+        bevelSegments: 2
+      });
+      geometry.center();
+      const mesh = new THREE.Mesh(
+        geometry,
+        new THREE.MeshStandardMaterial({
+          color: line.color,
+          metalness: 0.15,
+          roughness: 0.3
+        })
+      );
+      mesh.position.y = index === 0 ? 0.25 : -0.35;
+      textGroup.add(mesh);
+    });
+    fallback.classList.add("hidden");
+  }, undefined, (error) => console.error("3D headline failed to load.", error));
 
   const pointer = new THREE.Vector2();
   const targetPointer = new THREE.Vector2();
@@ -145,6 +180,8 @@ function initHero() {
   const animate = (time) => {
     requestAnimationFrame(animate);
     pointer.lerp(targetPointer, 0.07);
+    textGroup.rotation.y = THREE.MathUtils.lerp(textGroup.rotation.y, pointer.x * 0.14, 0.06);
+    textGroup.rotation.x = THREE.MathUtils.lerp(textGroup.rotation.x, -pointer.y * 0.08, 0.06);
     const floorY = -0.85;
     if (reducedMotion) {
       character.position.y = floorY;
