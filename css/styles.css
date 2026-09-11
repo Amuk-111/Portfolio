@@ -40,8 +40,8 @@ h1 em { color: var(--orange-light); font-style: normal; }
 h2 { margin-bottom: 1.25rem; font-size: clamp(1.8rem, 3vw, 3rem); line-height: 1; letter-spacing: -.06em; }
 h3 { margin-bottom: .65rem; font-size: 1rem; }
 .hero-text, .lead { max-width: 520px; color: var(--muted); font-size: 1.05rem; line-height: 1.75; }
-.hero-headline { min-height: 145px; position: relative; margin-bottom: 1.5rem; }
-#heroHeadline3d { width: 100%; height: 145px; cursor: grab; touch-action: none; }
+.hero-headline { min-height: 175px; position: relative; margin-bottom: 1.5rem; }
+#heroHeadline3d { width: 100%; height: 175px; cursor: grab; touch-action: none; }
 #heroHeadline3d:active { cursor: grabbing; }
 .hero-headline-fallback { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: .55rem; pointer-events: none; }
 .hero-headline-fallback strong { font-size: clamp(3.5rem, 7vw, 6.7rem); line-height: .92; letter-spacing: -.08em; }

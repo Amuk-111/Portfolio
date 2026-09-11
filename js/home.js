@@ -86,6 +86,12 @@ function initHero() {
   );
   mouth.position.set(0, 0.83, 0.414);
   character.add(mouth);
+  const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x241713 });
+  const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.025), eyeMaterial);
+  const rightEye = leftEye.clone();
+  leftEye.position.set(-0.17, 1.08, 0.414);
+  rightEye.position.set(0.17, 1.08, 0.414);
+  character.add(leftEye, rightEye);
 
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(0.22, 0.55, 0.22),
@@ -120,14 +126,24 @@ function initHero() {
   let grounded = false;
   let walkTime = 0;
   let clickBounce = false;
+  let lastFrameTime = 0;
+  let lastInteractionTime = performance.now();
+  let nextPetAction = performance.now() + 1800;
+  let petState = "falling";
+  let blinkUntil = 0;
+  let idleDirection = 1;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   canvas.addEventListener("pointermove", (event) => {
+    lastInteractionTime = performance.now();
+    if (petState === "sleep") petState = "idle";
     const rect = canvas.getBoundingClientRect();
     targetPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     targetPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   });
   canvas.addEventListener("pointerdown", (event) => {
+    lastInteractionTime = performance.now();
+    petState = "excited";
     clickBounce = true;
     canvas.setPointerCapture(event.pointerId);
   });
@@ -143,6 +159,8 @@ function initHero() {
 
   const animate = (time) => {
     requestAnimationFrame(animate);
+    const delta = Math.min(0.04, (time - (lastFrameTime || time)) / 1000);
+    lastFrameTime = time;
     pointer.lerp(targetPointer, 0.07);
     const floorY = -0.85;
     if (reducedMotion) {
@@ -150,32 +168,63 @@ function initHero() {
       character.position.x = 0;
       grounded = true;
     } else if (!grounded) {
-      verticalVelocity -= 9 * 0.016;
-      character.position.y += verticalVelocity * 0.016;
+      verticalVelocity -= 9 * delta;
+      character.position.y += verticalVelocity * delta;
       if (character.position.y <= floorY) {
         character.position.y = floorY;
         verticalVelocity = 0;
         grounded = true;
+        petState = "idle";
+        nextPetAction = time + 900;
       }
     } else {
       if (clickBounce) {
         verticalVelocity = 4.2;
         grounded = false;
         clickBounce = false;
+        petState = "excited";
+      } else if (time > nextPetAction) {
+        if (time - lastInteractionTime > 7000) {
+          petState = "sleep";
+          nextPetAction = time + 2500;
+        } else if (petState === "sleep") {
+          petState = "idle";
+          nextPetAction = time + 1000;
+        } else if (petState === "walk" || petState === "idle") {
+          petState = Math.random() > 0.35 ? "walk" : "idle";
+          idleDirection = Math.random() > 0.5 ? 1 : -1;
+          nextPetAction = time + 1400 + Math.random() * 2200;
+        } else {
+          petState = "idle";
+          nextPetAction = time + 900;
+        }
       }
-      character.position.x += direction * 0.018;
-      if (character.position.x > 2.8 || character.position.x < -2.8) {
-        direction *= -1;
+      if (petState === "walk") {
+        character.position.x += direction * idleDirection * delta * 1.35;
+        if (character.position.x > 2.8 || character.position.x < -2.8) {
+          direction *= -1;
+          petState = "idle";
+          nextPetAction = time + 700;
+        }
         character.rotation.y = direction < 0 ? Math.PI : 0;
       }
-      walkTime += 0.12;
-      limbs[2].rotation.z = Math.sin(walkTime) * 0.35;
-      limbs[3].rotation.z = -Math.sin(walkTime) * 0.35;
-      character.position.y = floorY + Math.abs(Math.sin(walkTime * 2)) * 0.025;
+      walkTime += delta * (petState === "walk" ? 7 : 2);
+      const stepAmount = petState === "walk" ? 0.35 : 0.04;
+      limbs[2].rotation.z = Math.sin(walkTime) * stepAmount;
+      limbs[3].rotation.z = -Math.sin(walkTime) * stepAmount;
+      character.position.y = floorY + (petState === "sleep" ? 0 : Math.abs(Math.sin(walkTime * 2)) * 0.025);
     }
     character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, -pointer.x * 0.12, 0.08);
     head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, pointer.y * 0.18, 0.08);
     head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, pointer.x * 0.22, 0.08);
+    const blinking = time < blinkUntil;
+    if (!blinking && time > nextPetAction - 450 && Math.random() < 0.012) {
+      blinkUntil = time + 130;
+    }
+    leftEye.scale.y = blinking ? 0.12 : 1;
+    rightEye.scale.y = blinking ? 0.12 : 1;
+    mouth.scale.x = petState === "excited" ? 1.35 : petState === "sleep" ? 0.65 : 1;
+    mouth.rotation.z = petState === "sleep" ? -0.35 : 0;
     renderer.render(scene, camera);
   };
   requestAnimationFrame(animate);
