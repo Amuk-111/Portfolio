@@ -322,7 +322,7 @@ function onLookMove(event) {
   const deltaY = event.clientY - lastLookY;
   lastLookX = event.clientX;
   lastLookY = event.clientY;
-  cameraYaw += deltaX * mouseSensitivity;
+  cameraYaw -= deltaX * mouseSensitivity;
   cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch - deltaY * mouseSensitivity));
 }
 
@@ -337,7 +337,7 @@ function onMouseMove(event) {
 
   if (document.pointerLockElement !== container) return;
 
-  cameraYaw += event.movementX * mouseSensitivity;
+  cameraYaw -= event.movementX * mouseSensitivity;
   cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch - event.movementY * mouseSensitivity));
 }
 function onKeyDown(event) {
@@ -447,9 +447,9 @@ function updateMovement(delta) {
   if (!active || paused) return;
 
   const forwardX = Math.sin(cameraYaw);
-  const forwardZ = Math.cos(cameraYaw);
+  const forwardZ = -Math.cos(cameraYaw);
   const rightX = Math.cos(cameraYaw);
-  const rightZ = -Math.sin(cameraYaw);
+  const rightZ = Math.sin(cameraYaw);
 
   const inputForward = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
   const inputRight = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0);
