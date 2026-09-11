@@ -21,6 +21,9 @@ let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
+let isLooking = false;
+let lastLookX = 0;
+let lastLookY = 0;
 
 const moveSpeed = 5.2;
 const mouseSensitivity = 0.0022;
@@ -130,6 +133,10 @@ function init() {
   ctx = canvas.getContext('2d');
 
   document.addEventListener('mousemove', onMouseMove);
+  container.addEventListener('pointerdown', onLookStart);
+  container.addEventListener('pointermove', onLookMove);
+  container.addEventListener('pointerup', onLookEnd);
+  container.addEventListener('pointercancel', onLookEnd);
   document.addEventListener('keydown', onKeyDown);
   document.addEventListener('keyup', onKeyUp);
   container.addEventListener('click', onContainerClick);
@@ -180,7 +187,7 @@ function loadModel(fileName) {
     const bbox = new THREE.Box3().setFromObject(loadedModel);
     const size = bbox.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = maxDim > 0;
+    const scale = maxDim > 0 ? 2 / maxDim : 1;
     loadedModel.scale.setScalar(scale);
     bbox.setFromObject(loadedModel);
     const center = bbox.getCenter(new THREE.Vector3());
@@ -298,6 +305,31 @@ function onContainerClick() {
   if (container.requestPointerLock) {
     container.requestPointerLock();
   }
+}
+
+function onLookStart(event) {
+  if (!active || paused || event.target.closest('button, a, input')) return;
+  isLooking = true;
+  lastLookX = event.clientX;
+  lastLookY = event.clientY;
+  container.setPointerCapture(event.pointerId);
+  container.classList.add('looking');
+}
+
+function onLookMove(event) {
+  if (!isLooking || !active || paused || document.pointerLockElement === container) return;
+  const deltaX = event.clientX - lastLookX;
+  const deltaY = event.clientY - lastLookY;
+  lastLookX = event.clientX;
+  lastLookY = event.clientY;
+  cameraYaw += deltaX * mouseSensitivity;
+  cameraPitch = Math.max(-maxPitch, Math.min(maxPitch, cameraPitch - deltaY * mouseSensitivity));
+}
+
+function onLookEnd(event) {
+  isLooking = false;
+  container.classList.remove('looking');
+  try { container.releasePointerCapture(event.pointerId); } catch {}
 }
 
 function onMouseMove(event) {

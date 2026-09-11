@@ -62,6 +62,10 @@ function initHero() {
   scene.add(textGroup);
   const mouse = new THREE.Vector2();
   const targetMouse = new THREE.Vector2();
+  const dragOffset = new THREE.Vector2();
+  const targetDragOffset = new THREE.Vector2();
+  let isDragging = false;
+  let previousPointer = new THREE.Vector2();
   const lines = [
     { text: "THOMAS LOGE", size: 1.15, height: 0.18, color: 0xf7f3ed },
     { text: "FULL-STACK DEVELOPER", size: 0.52, height: 0.1, color: 0xf39a63 },
@@ -88,7 +92,26 @@ function initHero() {
     const rect = canvas.getBoundingClientRect();
     targetMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     targetMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    if (isDragging) {
+      targetDragOffset.x += (event.clientX - previousPointer.x) * 0.012;
+      targetDragOffset.y -= (event.clientY - previousPointer.y) * 0.012;
+      previousPointer.set(event.clientX, event.clientY);
+    }
   });
+  canvas.addEventListener("pointerdown", (event) => {
+    isDragging = true;
+    previousPointer.set(event.clientX, event.clientY);
+    canvas.style.cursor = "grabbing";
+    canvas.setPointerCapture(event.pointerId);
+  });
+  const stopDragging = (event) => {
+    isDragging = false;
+    canvas.style.cursor = "grab";
+    targetDragOffset.set(0, 0);
+    try { canvas.releasePointerCapture(event.pointerId); } catch {}
+  };
+  canvas.addEventListener("pointerup", stopDragging);
+  canvas.addEventListener("pointercancel", stopDragging);
 
   const resize = () => {
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -102,9 +125,11 @@ function initHero() {
   const animate = (time) => {
     requestAnimationFrame(animate);
     mouse.lerp(targetMouse, 0.06);
+    dragOffset.lerp(targetDragOffset, 0.08);
     textGroup.rotation.y = THREE.MathUtils.lerp(textGroup.rotation.y, mouse.x * 0.15, 0.05);
     textGroup.rotation.x = THREE.MathUtils.lerp(textGroup.rotation.x, -mouse.y * 0.08, 0.05);
-    textGroup.position.y = Math.sin(time * 0.0008) * 0.03;
+    textGroup.position.x = dragOffset.x;
+    textGroup.position.y = Math.sin(time * 0.0008) * 0.03 + dragOffset.y;
     renderer.render(scene, camera);
   };
   requestAnimationFrame(animate);
