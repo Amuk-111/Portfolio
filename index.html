@@ -28,7 +28,14 @@
         <section class="hero" id="about">
           <div class="hero-copy">
             <p class="eyebrow">Full-stack developer · 3D specialist</p>
-            <h1>Thomas <em>Logé</em></h1>
+            <div class="hero-headline">
+              <h1 class="sr-only">Thomas Logé</h1>
+              <canvas id="heroHeadline3d" aria-label="Interactive 3D text reading Thomas Logé, full-stack developer"></canvas>
+              <div id="heroHeadlineFallback" class="hero-headline-fallback" aria-hidden="true">
+                <strong>Thomas <em>Logé</em></strong>
+                <span>Full-stack developer · React · TypeScript · Node.js · 3D</span>
+              </div>
+            </div>
             <p class="hero-text">
               Full-stack developer working across React, TypeScript, Node.js, and 3D
               experiences.
@@ -46,10 +53,6 @@
           <div class="hero-visual" aria-label="Interactive 3D introduction">
             <div class="hero-visual-label"><span class="status-dot"></span> Interactive desk study</div>
             <div class="hero-title-3d">
-              <div id="heroTitleFallback" class="hero-title-fallback" aria-hidden="true">
-                <strong>DIGITAL<br />PRODUCTS</strong>
-                <span>with a spatial point of view</span>
-              </div>
               <canvas id="hero3dText" aria-label="Interactive 3D cube character"></canvas>
             </div>
             <p class="hero-hint">Move your cursor · click to say hello</p>

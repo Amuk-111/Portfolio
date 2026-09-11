@@ -41,7 +41,6 @@ async function loadModels() {
 
 function initHero() {
   const canvas = document.getElementById("hero3dText");
-  const fallback = document.getElementById("heroTitleFallback");
   if (!canvas) return;
 
   const scene = new THREE.Scene();
@@ -114,41 +113,6 @@ function initHero() {
   addLimb(new THREE.Vector3(0.08, 0.1, 0), new THREE.Vector3(0.28, -0.55, 0));
   character.position.set(-2.8, 4.2, 0);
   scene.add(character);
-  const textGroup = new THREE.Group();
-  textGroup.position.set(0, 1.55, -0.4);
-  scene.add(textGroup);
-
-  new FontLoader().load("./js/libs/package/examples/fonts/typeface/helvetiker_regular.typeface.json", (font) => {
-    const headlineLines = [
-      { text: "DIGITAL PRODUCTS", size: 0.54, color: 0xf7f3ed },
-      { text: "WITH A SPATIAL POINT OF VIEW", size: 0.23, color: 0xf39a63 }
-    ];
-    headlineLines.forEach((line, index) => {
-      const geometry = new TextGeometry(line.text, {
-        font,
-        size: line.size,
-        height: 0.045,
-        curveSegments: 5,
-        bevelEnabled: true,
-        bevelThickness: 0.01,
-        bevelSize: 0.006,
-        bevelSegments: 2
-      });
-      geometry.center();
-      const mesh = new THREE.Mesh(
-        geometry,
-        new THREE.MeshStandardMaterial({
-          color: line.color,
-          metalness: 0.15,
-          roughness: 0.3
-        })
-      );
-      mesh.position.y = index === 0 ? 0.25 : -0.35;
-      textGroup.add(mesh);
-    });
-    fallback.classList.add("hidden");
-  }, undefined, (error) => console.error("3D headline failed to load.", error));
-
   const pointer = new THREE.Vector2();
   const targetPointer = new THREE.Vector2();
   let direction = 1;
@@ -180,8 +144,6 @@ function initHero() {
   const animate = (time) => {
     requestAnimationFrame(animate);
     pointer.lerp(targetPointer, 0.07);
-    textGroup.rotation.y = THREE.MathUtils.lerp(textGroup.rotation.y, pointer.x * 0.14, 0.06);
-    textGroup.rotation.x = THREE.MathUtils.lerp(textGroup.rotation.x, -pointer.y * 0.08, 0.06);
     const floorY = -0.85;
     if (reducedMotion) {
       character.position.y = floorY;
@@ -214,6 +176,92 @@ function initHero() {
     character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, -pointer.x * 0.12, 0.08);
     head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, pointer.y * 0.18, 0.08);
     head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, pointer.x * 0.22, 0.08);
+    renderer.render(scene, camera);
+  };
+  requestAnimationFrame(animate);
+}
+
+function initHeadline() {
+  const canvas = document.getElementById("heroHeadline3d");
+  const fallback = document.getElementById("heroHeadlineFallback");
+  if (!canvas) return;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
+  camera.position.z = 14;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+  scene.add(new THREE.AmbientLight(0xffffff, 2.4));
+  const light = new THREE.DirectionalLight(0xf39a63, 2.4);
+  light.position.set(-3, 4, 7);
+  scene.add(light);
+
+  const group = new THREE.Group();
+  scene.add(group);
+  const pointer = new THREE.Vector2();
+  const targetPointer = new THREE.Vector2();
+  let dragging = false;
+  let previousPointer = new THREE.Vector2();
+  const lines = [
+    { text: "THOMAS LOGE", size: 1.1, color: 0xf7f3ed, y: 0.55 },
+    { text: "FULL-STACK DEVELOPER", size: 0.42, color: 0xf39a63, y: -0.55 },
+    { text: "REACT · TYPESCRIPT · NODE.JS · 3D", size: 0.23, color: 0xa69f96, y: -1.05 }
+  ];
+
+  new FontLoader().load("./js/libs/package/examples/fonts/typeface/helvetiker_regular.typeface.json", (font) => {
+    lines.forEach((line) => {
+      const geometry = new TextGeometry(line.text, {
+        font, size: line.size, height: 0.08, curveSegments: 6,
+        bevelEnabled: true, bevelThickness: 0.018, bevelSize: 0.01, bevelSegments: 2
+      });
+      geometry.center();
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
+        color: line.color, metalness: 0.18, roughness: 0.3
+      }));
+      mesh.position.y = line.y;
+      group.add(mesh);
+    });
+    fallback.classList.add("hidden");
+  }, undefined, (error) => console.error("3D headline failed to load.", error));
+
+  canvas.addEventListener("pointermove", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    targetPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    targetPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    if (dragging) {
+      group.rotation.y += (event.clientX - previousPointer.x) * 0.012;
+      group.rotation.x += (event.clientY - previousPointer.y) * 0.008;
+      previousPointer.set(event.clientX, event.clientY);
+    }
+  });
+  canvas.addEventListener("pointerdown", (event) => {
+    dragging = true;
+    previousPointer.set(event.clientX, event.clientY);
+    canvas.setPointerCapture(event.pointerId);
+  });
+  const stopDragging = (event) => {
+    dragging = false;
+    try { canvas.releasePointerCapture(event.pointerId); } catch {}
+  };
+  canvas.addEventListener("pointerup", stopDragging);
+  canvas.addEventListener("pointercancel", stopDragging);
+
+  const resize = () => {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    renderer.setSize(Math.max(1, rect.width), Math.max(1, rect.height), true);
+    camera.aspect = rect.width / rect.height;
+    camera.updateProjectionMatrix();
+  };
+  window.addEventListener("resize", resize);
+  resize();
+  const animate = () => {
+    requestAnimationFrame(animate);
+    pointer.lerp(targetPointer, 0.07);
+    if (!dragging) {
+      group.rotation.y = THREE.MathUtils.lerp(group.rotation.y, pointer.x * 0.16, 0.06);
+      group.rotation.x = THREE.MathUtils.lerp(group.rotation.x, -pointer.y * 0.08, 0.06);
+    }
     renderer.render(scene, camera);
   };
   requestAnimationFrame(animate);
@@ -296,6 +344,7 @@ function initScrollReveal() {
 
 loadModels();
 initHero();
+initHeadline();
 initProjectCards();
 initSkillConstellation();
 initScrollReveal();
