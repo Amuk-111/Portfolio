@@ -1,6 +1,4 @@
 import * as THREE from "three";
-import { FontLoader } from "./libs/package/examples/jsm/loaders/FontLoader.js";
-import { TextGeometry } from "./libs/package/examples/jsm/geometries/TextGeometry.js";
 
 const modelList = document.getElementById("modelList");
 const enterButton = document.getElementById("enterModelBtn");
@@ -45,73 +43,95 @@ function initHero() {
   if (!canvas) return;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
-  camera.position.z = 16;
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+  camera.position.set(0, 1.4, 10);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearColor(0x000000, 0);
-  scene.add(new THREE.AmbientLight(0xffffff, 2.5));
-  const keyLight = new THREE.DirectionalLight(0xffffff, 3.8);
+  scene.add(new THREE.HemisphereLight(0xfff5eb, 0x25201d, 2.4));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
   keyLight.position.set(4, 5, 8);
   scene.add(keyLight);
-  const orangeLight = new THREE.DirectionalLight(0xf39a63, 2.2);
-  orangeLight.position.set(-4, -1, 5);
+  const orangeLight = new THREE.PointLight(0xf39a63, 8, 10);
+  orangeLight.position.set(-3, 2, 3);
   scene.add(orangeLight);
 
-  const textGroup = new THREE.Group();
-  scene.add(textGroup);
-  const mouse = new THREE.Vector2();
-  const targetMouse = new THREE.Vector2();
-  const dragOffset = new THREE.Vector2();
-  const targetDragOffset = new THREE.Vector2();
-  let isDragging = false;
-  let previousPointer = new THREE.Vector2();
-  const lines = [
-    { text: "THOMAS LOGE", size: 1.15, height: 0.18, color: 0xf7f3ed },
-    { text: "FULL-STACK DEVELOPER", size: 0.52, height: 0.1, color: 0xf39a63 },
-    { text: "REACT · TYPESCRIPT · 3D", size: 0.3, height: 0.06, color: 0xa69f96 }
-  ];
+  const desk = new THREE.Group();
+  const deskTop = new THREE.Mesh(
+    new THREE.BoxGeometry(7.2, 0.18, 2.6),
+    new THREE.MeshStandardMaterial({ color: 0x3a2922, roughness: 0.8 })
+  );
+  deskTop.position.y = -1.55;
+  desk.add(deskTop);
+  const deskEdge = new THREE.Mesh(
+    new THREE.BoxGeometry(7.2, 0.06, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0xf39a63, emissive: 0x3a1608 })
+  );
+  deskEdge.position.set(0, -1.43, 1.3);
+  desk.add(deskEdge);
+  scene.add(desk);
 
-  new FontLoader().load("./js/libs/package/examples/fonts/typeface/helvetiker_regular.typeface.json", (font) => {
-    fallback.classList.add("hidden");
-    lines.forEach((line, index) => {
-      const geometry = new TextGeometry(line.text, {
-        font, size: line.size, height: line.height, curveSegments: 7,
-        bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.012, bevelSegments: 2
-      });
-      geometry.center();
-      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({
-        color: line.color, metalness: 0.2, roughness: 0.28
-      }));
-      mesh.position.y = 1.1 - index * 1.1;
-      textGroup.add(mesh);
-    });
-  }, undefined, (error) => console.error("3D headline failed to load.", error));
+  const character = new THREE.Group();
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.8, 0.8),
+    new THREE.MeshStandardMaterial({ color: 0xf39a63, roughness: 0.48 })
+  );
+  head.position.y = 0.95;
+  character.add(head);
+
+  const mouth = new THREE.Mesh(
+    new THREE.BoxGeometry(0.24, 0.07, 0.025),
+    new THREE.MeshBasicMaterial({ color: 0x241713 })
+  );
+  mouth.position.set(0, 0.83, 0.414);
+  character.add(mouth);
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.55, 0.22),
+    new THREE.MeshStandardMaterial({ color: 0xf7f3ed, roughness: 0.7 })
+  );
+  body.position.y = 0.35;
+  character.add(body);
+
+  const limbMaterial = new THREE.MeshStandardMaterial({ color: 0xf7f3ed, roughness: 0.7 });
+  const limbs = [];
+  const addLimb = (from, to) => {
+    const direction = new THREE.Vector3().subVectors(to, from);
+    const limb = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.045, 0.045, direction.length(), 8),
+      limbMaterial
+    );
+    limb.position.copy(from).add(to).multiplyScalar(0.5);
+    limb.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    character.add(limb);
+    limbs.push(limb);
+  };
+  addLimb(new THREE.Vector3(-0.08, 0.56, 0), new THREE.Vector3(-0.42, 0.15, 0));
+  addLimb(new THREE.Vector3(0.08, 0.56, 0), new THREE.Vector3(0.42, 0.15, 0));
+  addLimb(new THREE.Vector3(-0.08, 0.1, 0), new THREE.Vector3(-0.28, -0.55, 0));
+  addLimb(new THREE.Vector3(0.08, 0.1, 0), new THREE.Vector3(0.28, -0.55, 0));
+  character.position.set(-2.8, 4.2, 0);
+  scene.add(character);
+  fallback.classList.add("hidden");
+
+  const pointer = new THREE.Vector2();
+  const targetPointer = new THREE.Vector2();
+  let direction = 1;
+  let verticalVelocity = 0;
+  let grounded = false;
+  let walkTime = 0;
+  let clickBounce = false;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   canvas.addEventListener("pointermove", (event) => {
     const rect = canvas.getBoundingClientRect();
-    targetMouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    targetMouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    if (isDragging) {
-      targetDragOffset.x += (event.clientX - previousPointer.x) * 0.012;
-      targetDragOffset.y -= (event.clientY - previousPointer.y) * 0.012;
-      previousPointer.set(event.clientX, event.clientY);
-    }
+    targetPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    targetPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   });
   canvas.addEventListener("pointerdown", (event) => {
-    isDragging = true;
-    previousPointer.set(event.clientX, event.clientY);
-    canvas.style.cursor = "grabbing";
+    clickBounce = true;
     canvas.setPointerCapture(event.pointerId);
   });
-  const stopDragging = (event) => {
-    isDragging = false;
-    canvas.style.cursor = "grab";
-    targetDragOffset.set(0, 0);
-    try { canvas.releasePointerCapture(event.pointerId); } catch {}
-  };
-  canvas.addEventListener("pointerup", stopDragging);
-  canvas.addEventListener("pointercancel", stopDragging);
 
   const resize = () => {
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -124,12 +144,39 @@ function initHero() {
 
   const animate = (time) => {
     requestAnimationFrame(animate);
-    mouse.lerp(targetMouse, 0.06);
-    dragOffset.lerp(targetDragOffset, 0.08);
-    textGroup.rotation.y = THREE.MathUtils.lerp(textGroup.rotation.y, mouse.x * 0.15, 0.05);
-    textGroup.rotation.x = THREE.MathUtils.lerp(textGroup.rotation.x, -mouse.y * 0.08, 0.05);
-    textGroup.position.x = dragOffset.x;
-    textGroup.position.y = Math.sin(time * 0.0008) * 0.03 + dragOffset.y;
+    pointer.lerp(targetPointer, 0.07);
+    const floorY = -0.85;
+    if (reducedMotion) {
+      character.position.y = floorY;
+      character.position.x = 0;
+      grounded = true;
+    } else if (!grounded) {
+      verticalVelocity -= 9 * 0.016;
+      character.position.y += verticalVelocity * 0.016;
+      if (character.position.y <= floorY) {
+        character.position.y = floorY;
+        verticalVelocity = 0;
+        grounded = true;
+      }
+    } else {
+      if (clickBounce) {
+        verticalVelocity = 4.2;
+        grounded = false;
+        clickBounce = false;
+      }
+      character.position.x += direction * 0.018;
+      if (character.position.x > 2.8 || character.position.x < -2.8) {
+        direction *= -1;
+        character.rotation.y = direction < 0 ? Math.PI : 0;
+      }
+      walkTime += 0.12;
+      limbs[2].rotation.z = Math.sin(walkTime) * 0.35;
+      limbs[3].rotation.z = -Math.sin(walkTime) * 0.35;
+      character.position.y = floorY + Math.abs(Math.sin(walkTime * 2)) * 0.025;
+    }
+    character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, -pointer.x * 0.12, 0.08);
+    head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, pointer.y * 0.18, 0.08);
+    head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, pointer.x * 0.22, 0.08);
     renderer.render(scene, camera);
   };
   requestAnimationFrame(animate);
