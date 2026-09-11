@@ -575,9 +575,9 @@ function animate() {
     // if an enter transition is active, interpolate cameraX/Z
     if (enterTransition) {
       const now = performance.now();
-      const t = Math.min(1, (now - enterTransition.startTime) / enterTransition.duration);
+      const progress = Math.min(1, (now - enterTransition.startTime) / enterTransition.duration);
       // ease out cubic
-      const ease = (--t) * t * t + 1;
+      const ease = (progress - 1) * (progress - 1) * (progress - 1) + 1;
       cameraX = enterTransition.startX + (enterTransition.targetX - enterTransition.startX) * ease;
       cameraZ = enterTransition.startZ + (enterTransition.targetZ - enterTransition.startZ) * ease;
       if ((now - enterTransition.startTime) >= enterTransition.duration) {
