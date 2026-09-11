@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thomas Secret Garden — Model View</title>
+    <meta
+      name="description"
+      content="A first-person walkthrough experience for exploring a Blender-inspired scene."
+    />
+    <link rel="stylesheet" href="../css/styles.css" />
+  </head>
+  <body class="viewer-page">
+    <div class="viewer-shell">
+      <header class="viewer-topbar">
+        <a class="brand" href="../index.html">Thomas Secret Garden</a>
+        <nav class="nav-links">
+          <a href="../index.html">Home</a>
+          <a href="viewer.html" class="active">Model</a>
+        </nav>
+      </header>
+
+      <main class="viewer-main">
+        <div id="viewerContainer" class="viewer-canvas">
+          <div id="overlay" class="viewer-overlay">
+            <div class="overlay-card">
+              <h1 id="overlayTitle">Explore the space</h1>
+              <p id="overlayText">Click to enter first-person view. Use W, A, S, D to move and your mouse to look around.</p>
+              <button id="enterBtn" class="btn btn-primary">Enter Scene</button>
+            </div>
+          </div>
+          <div id="crosshair" class="crosshair" aria-hidden="true"></div>
+          <div id="settingsPanel" class="settings-panel" aria-hidden="true">
+            <label for="fovRange">Field of view</label>
+            <input id="fovRange" type="range" min="55" max="95" value="70" />
+            <span id="fovValue">70°</span>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="../js/libs/three.min.146.0.js"></script>
+    <script src="../js/libs/DRACOLoader.146.0.js"></script>
+    <script src="../js/libs/GLTFLoader.146.0.js"></script>
+    <script src="../js/libs/meshopt_decoder.js"></script>
+    <script src="../js/viewer.js"></script>
+  </body>
+</html>
