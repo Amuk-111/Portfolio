@@ -1,0 +1,39 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor and local tooling
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# JavaScript dependencies and build output
+node_modules/
+dist/
+build/
+.parcel-cache/
+.cache/
+# The website intentionally vendors the Three.js build used by its import map.
+!js/libs/package/build/
+!js/libs/package/build/**
+
+# Blender backup and autosave files
+*.blend1
+*.blend2
+*.blend3
+*.autosave
+
+# Local exports and archives
+*.zip
+*.7z
+*.rar
+
+# Oversized local model; publish an optimized/compressed replacement under 100 MB.
+gltf/city.glb
+
+# Local logs and temporary files
+*.log
+*.tmp
+*.temp
