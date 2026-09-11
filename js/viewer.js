@@ -446,10 +446,10 @@ function onKeyUp(event) {
 function updateMovement(delta) {
   if (!active || paused) return;
 
-  const forwardX = Math.sin(cameraYaw);
+  const forwardX = -Math.sin(cameraYaw);
   const forwardZ = -Math.cos(cameraYaw);
   const rightX = Math.cos(cameraYaw);
-  const rightZ = Math.sin(cameraYaw);
+  const rightZ = -Math.sin(cameraYaw);
 
   const inputForward = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
   const inputRight = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0);
