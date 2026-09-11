@@ -135,5 +135,83 @@ function initHero() {
   requestAnimationFrame(animate);
 }
 
+function initProjectCards() {
+  document.querySelectorAll("[data-project-card]").forEach((card) => {
+    const toggle = card.querySelector(".project-toggle");
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    toggle.addEventListener("click", () => {
+      const expanded = card.classList.toggle("is-expanded");
+      toggle.setAttribute("aria-expanded", String(expanded));
+    });
+
+    card.addEventListener("pointerdown", (event) => {
+      if (event.target.closest("button")) return;
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      card.setPointerCapture(event.pointerId);
+    });
+
+    card.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      const deltaX = event.clientX - startX;
+      const deltaY = event.clientY - startY;
+      const rect = card.getBoundingClientRect();
+      const tilt = ((event.clientX - rect.left) / rect.width - 0.5) * 5;
+      card.style.transform = `translate3d(${deltaX * 0.22}px, ${deltaY * 0.22}px, 0) rotate(${tilt}deg)`;
+    });
+
+    const releaseCard = (event) => {
+      if (!dragging) return;
+      dragging = false;
+      card.style.transform = "";
+      try { card.releasePointerCapture(event.pointerId); } catch {}
+    };
+    card.addEventListener("pointerup", releaseCard);
+    card.addEventListener("pointercancel", releaseCard);
+  });
+}
+
+function initSkillConstellation() {
+  const detail = document.getElementById("skillDetail");
+  const descriptions = {
+    react: "React turns CRM workflows into focused, real-time tools people can use quickly.",
+    crm: "Zoho CRM is where integrations, automation, and useful interfaces meet.",
+    "3d": "3D modeling brings technical drawings and spaces into something people can explore.",
+    api: "APIs connect the product layers: messages, leads, services, and deployments."
+  };
+
+  document.querySelectorAll("[data-skill]").forEach((node) => {
+    node.addEventListener("click", () => {
+      document.querySelectorAll("[data-skill]").forEach((entry) => entry.classList.remove("active"));
+      node.classList.add("active");
+      detail.textContent = descriptions[node.dataset.skill];
+    });
+  });
+}
+
+function initScrollReveal() {
+  const revealItems = document.querySelectorAll(".section-block, .sidebar, .viewer-promo");
+  if (!("IntersectionObserver" in window)) {
+    revealItems.forEach((item) => item.classList.add("is-visible"));
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries, currentObserver) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      currentObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.12 });
+  revealItems.forEach((item) => observer.observe(item));
+}
+
 loadModels();
 initHero();
+initProjectCards();
+initSkillConstellation();
+initScrollReveal();

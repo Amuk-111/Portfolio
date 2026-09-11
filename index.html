@@ -65,6 +65,25 @@
               <h2>Skills & strengths</h2>
             </div>
 
+            <article class="skill-constellation" aria-labelledby="constellation-title">
+              <div class="constellation-heading">
+                <h3 id="constellation-title">Connect the dots</h3>
+                <span>Click a skill</span>
+              </div>
+              <div class="constellation-map">
+                <span class="constellation-line line-one" aria-hidden="true"></span>
+                <span class="constellation-line line-two" aria-hidden="true"></span>
+                <span class="constellation-line line-three" aria-hidden="true"></span>
+                <button class="skill-node node-react" type="button" data-skill="react">React</button>
+                <button class="skill-node node-crm" type="button" data-skill="crm">Zoho CRM</button>
+                <button class="skill-node node-3d" type="button" data-skill="3d">3D</button>
+                <button class="skill-node node-api" type="button" data-skill="api">APIs</button>
+              </div>
+              <p class="skill-detail" id="skillDetail" aria-live="polite">
+                Choose a skill to see how it connects to my work.
+              </p>
+            </article>
+
             <article class="info-card">
               <h3>Technical skills</h3>
               <dl class="skill-list">
@@ -141,17 +160,29 @@
               </div>
               <h2 id="projects-title">Projects & highlights</h2>
               <div class="project-grid">
-                <article class="project-card project-card-accent">
+                <article class="project-card project-card-accent" data-project-card>
                   <span class="project-number">01</span>
-                  <h3>WhatsApp × Zoho CRM</h3>
+                  <button class="project-toggle" type="button" aria-expanded="false">
+                    <span>WhatsApp × Zoho CRM</span><span class="project-arrow" aria-hidden="true">↗</span>
+                  </button>
                   <p>A centralized messaging workflow for 15+ active agents, with real-time lead management and automated synchronization.</p>
                   <div class="tag-list"><span>Node.js</span><span>React</span><span>OAuth 2.0</span></div>
+                  <div class="project-detail">
+                    <strong>What I built</strong>
+                    <p>A Node.js and TypeScript bridge, a React CRM widget, OAuth 2.0 authentication, and REST webhooks for reliable lead synchronization.</p>
+                  </div>
                 </article>
-                <article class="project-card">
+                <article class="project-card" data-project-card>
                   <span class="project-number">02</span>
-                  <h3>Villa visualization</h3>
+                  <button class="project-toggle" type="button" aria-expanded="false">
+                    <span>Villa visualization</span><span class="project-arrow" aria-hidden="true">↗</span>
+                  </button>
                   <p>1:1 scale 3D structures modeled from AutoCAD blueprints, turning technical drawings into photorealistic sales assets.</p>
                   <div class="tag-list"><span>Blender</span><span>3D modeling</span><span>Rendering</span></div>
+                  <div class="project-detail">
+                    <strong>What I built</strong>
+                    <p>Technical models from 2D drawings, resolved design conflicts before construction, and photorealistic renders for property sales.</p>
+                  </div>
                 </article>
               </div>
             </section>
