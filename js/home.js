@@ -327,9 +327,10 @@ function initHero() {
         if (character.position.x > 2.8 || character.position.x < -2.8) {
           direction *= -1;
           character.position.x = THREE.MathUtils.clamp(character.position.x, -2.8, 2.8);
-          petState = "idle";
-          idleUntil = time + 700;
-          nextPetAction = idleUntil;
+          verticalVelocity = 2.8;
+          grounded = false;
+          petState = "excited";
+          nextPetAction = time + 700;
         }
       }
       character.position.y = floorY;
