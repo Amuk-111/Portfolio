@@ -91,6 +91,19 @@ function initHero() {
   leftEye.position.set(-0.17, 0.53, 0.414);
   rightEye.position.set(0.17, 0.53, 0.414);
   character.add(leftEye, rightEye);
+  const crossMaterial = new THREE.MeshBasicMaterial({ color: 0x241713 });
+  const crossEyes = [-0.17, 0.17].map((x) => {
+    const cross = new THREE.Group();
+    const diagonalA = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.025, 0.025), crossMaterial);
+    const diagonalB = diagonalA.clone();
+    diagonalA.rotation.z = Math.PI / 4;
+    diagonalB.rotation.z = -Math.PI / 4;
+    cross.add(diagonalA, diagonalB);
+    cross.position.set(x, 0.53, 0.416);
+    cross.visible = false;
+    character.add(cross);
+    return cross;
+  });
   character.position.set(-2.8, 4.2, 0);
   scene.add(character);
   const pointer = new THREE.Vector2();
@@ -106,6 +119,8 @@ function initHero() {
   let angularVelocity = 0;
   let lastDragPoint = new THREE.Vector3();
   let lastDragTime = 0;
+  let groundImpactAt = 0;
+  let respawnAt = 0;
   let lastFrameTime = 0;
   let lastInteractionTime = performance.now();
   let nextBlink = performance.now() + 1800;
@@ -164,6 +179,11 @@ function initHero() {
       lastInteractionTime = performance.now();
       draggingPet = true;
       ragdolling = false;
+      groundImpactAt = 0;
+      respawnAt = 0;
+      crossEyes.forEach((cross) => { cross.visible = false; });
+      leftEye.visible = true;
+      rightEye.visible = true;
       petState = "excited";
       const point = getPointerPoint(event);
       if (point) {
@@ -219,17 +239,47 @@ function initHero() {
     if (draggingPet) {
       character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, 0, 0.2);
     } else if (ragdolling) {
-      throwVelocity.y -= 9 * delta;
-      character.position.addScaledVector(throwVelocity, delta);
-      character.rotation.z += angularVelocity * delta;
-      if (time - ragdollStartedAt > 950) {
+      if (groundImpactAt === 0) {
+        throwVelocity.y -= 9 * delta;
+        character.position.addScaledVector(throwVelocity, delta);
+        character.rotation.z += angularVelocity * delta;
+      }
+      if (character.position.x > 2.8 || character.position.x < -2.8) {
+        character.position.x = THREE.MathUtils.clamp(character.position.x, -2.8, 2.8);
+        throwVelocity.x *= -0.65;
+        angularVelocity *= -0.75;
+      }
+      if (character.position.y <= floorY && groundImpactAt === 0) {
+        character.position.y = floorY;
+        throwVelocity.y = 0;
+        throwVelocity.x *= 0.65;
+        angularVelocity *= 0.6;
+        groundImpactAt = time;
+        leftEye.visible = false;
+        rightEye.visible = false;
+        crossEyes.forEach((cross) => { cross.visible = true; });
+      }
+      if (groundImpactAt > 0) {
+        character.position.y = floorY;
+      }
+      if (groundImpactAt > 0 && time - groundImpactAt > 1900 && respawnAt === 0) {
+        character.visible = false;
+        respawnAt = time + 500;
+      }
+      if (respawnAt > 0 && time >= respawnAt) {
         ragdolling = false;
+        character.visible = true;
         throwVelocity.set(0, 0, 0);
         angularVelocity = 0;
-        character.position.set(THREE.MathUtils.clamp(character.position.x, -2.8, 2.8), floorY, 0);
+        character.position.set(THREE.MathUtils.randFloat(-2.4, 2.4), 4.2, 0);
         character.rotation.set(0, 0, 0);
-        petState = "idle";
-        nextPetAction = time + 500;
+        groundImpactAt = 0;
+        respawnAt = 0;
+        grounded = false;
+        petState = "falling";
+        leftEye.visible = true;
+        rightEye.visible = true;
+        crossEyes.forEach((cross) => { cross.visible = false; });
       }
     } else if (reducedMotion) {
       character.position.y = floorY;
