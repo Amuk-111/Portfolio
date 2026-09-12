@@ -56,7 +56,7 @@ h3 { margin-bottom: .65rem; font-size: 1rem; }
 .text-link span, .btn span { color: inherit; }
 .contact-bar { display: flex; gap: 1.25rem; margin-top: 4rem; color: var(--faint); font-size: .78rem; }
 .contact-bar a { color: var(--muted); text-decoration: none; }
-.hero-visual { min-height: 430px; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 2px; background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.015)); }
+.hero-visual { min-height: 430px; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 2px; background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.015)); box-shadow: inset 0 0 0 10px rgba(16,16,15,.35), inset 0 0 0 11px rgba(247,243,237,.08); }
 .hero-visual::before { content: ""; position: absolute; inset: 0; opacity: .35; background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 42px 42px; mask-image: linear-gradient(to bottom, black, transparent); }
 .hero-visual-label, .hero-hint { position: absolute; z-index: 2; color: var(--faint); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; }
 .hero-visual-label { top: 1.25rem; left: 1.25rem; }

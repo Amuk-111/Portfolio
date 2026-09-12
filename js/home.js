@@ -57,20 +57,19 @@ function initHero() {
   orangeLight.position.set(-3, 2, 3);
   scene.add(orangeLight);
 
-  const desk = new THREE.Group();
-  const deskTop = new THREE.Mesh(
-    new THREE.BoxGeometry(7.2, 0.18, 2.6),
-    new THREE.MeshStandardMaterial({ color: 0x3a2922, roughness: 0.8 })
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(14, 8),
+    new THREE.MeshStandardMaterial({ color: 0x3a2922, roughness: 0.86, metalness: 0.04 })
   );
-  deskTop.position.y = -1.55;
-  desk.add(deskTop);
-  const deskEdge = new THREE.Mesh(
-    new THREE.BoxGeometry(7.2, 0.06, 0.06),
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, -1.07, -0.8);
+  scene.add(floor);
+  const windowSill = new THREE.Mesh(
+    new THREE.BoxGeometry(14, 0.12, 0.16),
     new THREE.MeshStandardMaterial({ color: 0xf39a63, emissive: 0x3a1608 })
   );
-  deskEdge.position.set(0, -1.43, 1.3);
-  desk.add(deskEdge);
-  scene.add(desk);
+  windowSill.position.set(0, -1.01, 2.85);
+  scene.add(windowSill);
 
   const character = new THREE.Group();
   const head = new THREE.Mesh(
