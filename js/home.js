@@ -250,17 +250,19 @@ function initHero() {
         angularVelocity *= -0.75;
       }
       if (character.position.y <= floorY && groundImpactAt === 0) {
-        character.position.y = floorY;
+        const landingDirection = angularVelocity === 0 ? 1 : Math.sign(angularVelocity);
+        character.position.y = floorY + 0.4;
         throwVelocity.y = 0;
         throwVelocity.x *= 0.65;
-        angularVelocity *= 0.6;
+        angularVelocity = 0;
+        character.rotation.z = landingDirection * Math.PI / 2;
         groundImpactAt = time;
         leftEye.visible = false;
         rightEye.visible = false;
         crossEyes.forEach((cross) => { cross.visible = true; });
       }
       if (groundImpactAt > 0) {
-        character.position.y = floorY;
+        character.position.y = floorY + 0.4;
       }
       if (groundImpactAt > 0 && time - groundImpactAt > 1900 && respawnAt === 0) {
         character.visible = false;
