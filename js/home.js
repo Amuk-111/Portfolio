@@ -357,18 +357,58 @@ function initProjectCards() {
 
 function initSkillConstellation() {
   const detail = document.getElementById("skillDetail");
+  const hint = document.getElementById("constellationHint");
+  const lines = [...document.querySelectorAll(".constellation-line")];
+  const selectedSkills = [];
   const descriptions = {
     react: "React turns CRM workflows into focused, real-time tools people can use quickly.",
     crm: "Zoho CRM is where integrations, automation, and useful interfaces meet.",
     "3d": "3D modeling brings technical drawings and spaces into something people can explore.",
     api: "APIs connect the product layers: messages, leads, services, and deployments."
   };
+  const connections = {
+    "3d|react": "Interactive 3D experiences combine visual thinking with focused interfaces.",
+    "api|crm": "APIs and CRM automation connect conversations to useful business workflows.",
+    "crm|react": "React turns CRM data into focused tools people can use quickly.",
+    "3d|api": "3D and APIs make complex spaces easier to explore and share.",
+    "api|react": "React and APIs bring data, actions, and feedback together.",
+    "3d|crm": "3D and CRM meet in property tools that help teams explain spaces."
+  };
 
   document.querySelectorAll("[data-skill]").forEach((node) => {
     node.addEventListener("click", () => {
-      document.querySelectorAll("[data-skill]").forEach((entry) => entry.classList.remove("active"));
+      const skill = node.dataset.skill;
+      const existingIndex = selectedSkills.indexOf(skill);
+      if (existingIndex >= 0) {
+        selectedSkills.splice(existingIndex, 1);
+        node.classList.remove("active");
+        node.setAttribute("aria-pressed", "false");
+        lines.forEach((line) => line.classList.remove("active"));
+        detail.textContent = "Choose two skills to reveal a connection.";
+        hint.textContent = "Choose two skills";
+        return;
+      }
+
+      if (selectedSkills.length === 2) {
+        const previous = document.querySelector(`[data-skill="${selectedSkills.shift()}"]`);
+        previous.classList.remove("active");
+        previous.setAttribute("aria-pressed", "false");
+        lines.forEach((line) => line.classList.remove("active"));
+      }
+
+      selectedSkills.push(skill);
       node.classList.add("active");
-      detail.textContent = descriptions[node.dataset.skill];
+      node.setAttribute("aria-pressed", "true");
+      if (selectedSkills.length === 1) {
+        detail.textContent = `${descriptions[skill]} Now choose one more.`;
+        hint.textContent = "Choose one more";
+        return;
+      }
+
+      const pair = [...selectedSkills].sort().join("|");
+      lines.forEach((line) => line.classList.add("active"));
+      detail.textContent = connections[pair] || `${descriptions[selectedSkills[0]]} ${descriptions[selectedSkills[1]]}`;
+      hint.textContent = "Connection found";
     });
   });
 }
