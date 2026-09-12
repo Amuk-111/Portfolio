@@ -104,12 +104,17 @@ function initHero() {
   let lastInteractionTime = performance.now();
   let nextBlink = performance.now() + 1800;
   let petState = "falling";
+  let nextPetAction = performance.now() + 1200;
+  let idleUntil = 0;
   let blinkUntil = 0;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   canvas.addEventListener("pointermove", (event) => {
     lastInteractionTime = performance.now();
-    if (petState === "sleep") petState = "walk";
+    if (petState === "sleep") {
+      petState = "walk";
+      nextPetAction = performance.now() + 2200;
+    }
     const rect = canvas.getBoundingClientRect();
     targetPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     targetPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -140,6 +145,7 @@ function initHero() {
       character.position.y = floorY;
       character.position.x = 0;
       grounded = true;
+      petState = "idle";
     } else if (!grounded) {
       verticalVelocity -= 9 * delta;
       character.position.y += verticalVelocity * delta;
@@ -147,7 +153,9 @@ function initHero() {
         character.position.y = floorY;
         verticalVelocity = 0;
         grounded = true;
-        petState = "walk";
+        petState = "idle";
+        idleUntil = time + 800;
+        nextPetAction = idleUntil;
       }
     } else {
       if (clickBounce) {
@@ -158,13 +166,28 @@ function initHero() {
       } else if (time - lastInteractionTime > 7000) {
         petState = "sleep";
       } else if (petState === "sleep") {
-        petState = "walk";
+        petState = "idle";
+        idleUntil = time + 700;
+        nextPetAction = idleUntil;
+      } else if (time >= nextPetAction) {
+        if (petState === "idle" || petState === "excited") {
+          petState = "walk";
+          direction = Math.random() > 0.5 ? 1 : -1;
+          nextPetAction = time + 1800 + Math.random() * 2600;
+        } else if (petState === "walk") {
+          petState = "idle";
+          idleUntil = time + 900 + Math.random() * 1600;
+          nextPetAction = idleUntil;
+        }
       }
-      if (petState !== "sleep") {
+      if (petState === "walk") {
         character.position.x += direction * delta * 1.35;
         if (character.position.x > 2.8 || character.position.x < -2.8) {
           direction *= -1;
           character.position.x = THREE.MathUtils.clamp(character.position.x, -2.8, 2.8);
+          petState = "idle";
+          idleUntil = time + 700;
+          nextPetAction = idleUntil;
         }
       }
       character.position.y = floorY;
