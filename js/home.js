@@ -77,46 +77,21 @@ function initHero() {
     new THREE.BoxGeometry(0.8, 0.8, 0.8),
     new THREE.MeshStandardMaterial({ color: 0xf39a63, roughness: 0.48 })
   );
-  head.position.y = 0.95;
+  head.position.y = 0.4;
   character.add(head);
 
   const mouth = new THREE.Mesh(
     new THREE.BoxGeometry(0.24, 0.07, 0.025),
     new THREE.MeshBasicMaterial({ color: 0x241713 })
   );
-  mouth.position.set(0, 0.83, 0.414);
+  mouth.position.set(0, 0.28, 0.414);
   character.add(mouth);
   const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x241713 });
   const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.025), eyeMaterial);
   const rightEye = leftEye.clone();
-  leftEye.position.set(-0.17, 1.08, 0.414);
-  rightEye.position.set(0.17, 1.08, 0.414);
+  leftEye.position.set(-0.17, 0.53, 0.414);
+  rightEye.position.set(0.17, 0.53, 0.414);
   character.add(leftEye, rightEye);
-
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.22, 0.55, 0.22),
-    new THREE.MeshStandardMaterial({ color: 0xf7f3ed, roughness: 0.7 })
-  );
-  body.position.y = 0.35;
-  character.add(body);
-
-  const limbMaterial = new THREE.MeshStandardMaterial({ color: 0xf7f3ed, roughness: 0.7 });
-  const limbs = [];
-  const addLimb = (from, to) => {
-    const direction = new THREE.Vector3().subVectors(to, from);
-    const limb = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.045, 0.045, direction.length(), 8),
-      limbMaterial
-    );
-    limb.position.copy(from).add(to).multiplyScalar(0.5);
-    limb.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
-    character.add(limb);
-    limbs.push(limb);
-  };
-  addLimb(new THREE.Vector3(-0.08, 0.56, 0), new THREE.Vector3(-0.42, 0.15, 0));
-  addLimb(new THREE.Vector3(0.08, 0.56, 0), new THREE.Vector3(0.42, 0.15, 0));
-  addLimb(new THREE.Vector3(-0.08, 0.1, 0), new THREE.Vector3(-0.28, -0.55, 0));
-  addLimb(new THREE.Vector3(0.08, 0.1, 0), new THREE.Vector3(0.28, -0.55, 0));
   character.position.set(-2.8, 4.2, 0);
   scene.add(character);
   const pointer = new THREE.Vector2();
@@ -124,19 +99,17 @@ function initHero() {
   let direction = 1;
   let verticalVelocity = 0;
   let grounded = false;
-  let walkTime = 0;
   let clickBounce = false;
   let lastFrameTime = 0;
   let lastInteractionTime = performance.now();
-  let nextPetAction = performance.now() + 1800;
+  let nextBlink = performance.now() + 1800;
   let petState = "falling";
   let blinkUntil = 0;
-  let idleDirection = 1;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   canvas.addEventListener("pointermove", (event) => {
     lastInteractionTime = performance.now();
-    if (petState === "sleep") petState = "idle";
+    if (petState === "sleep") petState = "walk";
     const rect = canvas.getBoundingClientRect();
     targetPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     targetPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -162,7 +135,7 @@ function initHero() {
     const delta = Math.min(0.04, (time - (lastFrameTime || time)) / 1000);
     lastFrameTime = time;
     pointer.lerp(targetPointer, 0.07);
-    const floorY = -0.85;
+    const floorY = -1.06;
     if (reducedMotion) {
       character.position.y = floorY;
       character.position.x = 0;
@@ -174,8 +147,7 @@ function initHero() {
         character.position.y = floorY;
         verticalVelocity = 0;
         grounded = true;
-        petState = "idle";
-        nextPetAction = time + 900;
+        petState = "walk";
       }
     } else {
       if (clickBounce) {
@@ -183,42 +155,24 @@ function initHero() {
         grounded = false;
         clickBounce = false;
         petState = "excited";
-      } else if (time > nextPetAction) {
-        if (time - lastInteractionTime > 7000) {
-          petState = "sleep";
-          nextPetAction = time + 2500;
-        } else if (petState === "sleep") {
-          petState = "idle";
-          nextPetAction = time + 1000;
-        } else if (petState === "walk" || petState === "idle") {
-          petState = Math.random() > 0.35 ? "walk" : "idle";
-          idleDirection = Math.random() > 0.5 ? 1 : -1;
-          nextPetAction = time + 1400 + Math.random() * 2200;
-        } else {
-          petState = "idle";
-          nextPetAction = time + 900;
-        }
+      } else if (time - lastInteractionTime > 7000) {
+        petState = "sleep";
+      } else if (petState === "sleep") {
+        petState = "walk";
       }
-      if (petState === "walk") {
-        character.position.x += direction * idleDirection * delta * 1.35;
+      if (petState !== "sleep") {
+        character.position.x += direction * delta * 1.35;
         if (character.position.x > 2.8 || character.position.x < -2.8) {
           direction *= -1;
-          petState = "idle";
-          nextPetAction = time + 700;
+          character.position.x = THREE.MathUtils.clamp(character.position.x, -2.8, 2.8);
         }
-        character.rotation.y = direction < 0 ? Math.PI : 0;
       }
-      walkTime += delta * (petState === "walk" ? 7 : 2);
-      const stepAmount = petState === "walk" ? 0.35 : 0.04;
-      limbs[2].rotation.z = Math.sin(walkTime) * stepAmount;
-      limbs[3].rotation.z = -Math.sin(walkTime) * stepAmount;
-      character.position.y = floorY + (petState === "sleep" ? 0 : Math.abs(Math.sin(walkTime * 2)) * 0.025);
+      character.position.y = floorY;
     }
-    head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, pointer.y * 0.08, 0.08);
-    head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, pointer.x * 0.12, 0.08);
     const blinking = time < blinkUntil;
-    if (!blinking && time > nextPetAction - 450 && Math.random() < 0.012) {
+    if (!blinking && time > nextBlink) {
       blinkUntil = time + 130;
+      nextBlink = time + 1800 + Math.random() * 2600;
     }
     leftEye.scale.y = blinking ? 0.12 : 1;
     rightEye.scale.y = blinking ? 0.12 : 1;
