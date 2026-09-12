@@ -214,9 +214,8 @@ function initHero() {
       limbs[3].rotation.z = -Math.sin(walkTime) * stepAmount;
       character.position.y = floorY + (petState === "sleep" ? 0 : Math.abs(Math.sin(walkTime * 2)) * 0.025);
     }
-    character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, -pointer.x * 0.12, 0.08);
-    head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, pointer.y * 0.18, 0.08);
-    head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, pointer.x * 0.22, 0.08);
+    head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, pointer.y * 0.08, 0.08);
+    head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, pointer.x * 0.12, 0.08);
     const blinking = time < blinkUntil;
     if (!blinking && time > nextPetAction - 450 && Math.random() < 0.012) {
       blinkUntil = time + 130;
