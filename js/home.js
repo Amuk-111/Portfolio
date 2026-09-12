@@ -99,6 +99,13 @@ function initHero() {
   let verticalVelocity = 0;
   let grounded = false;
   let clickBounce = false;
+  let draggingPet = false;
+  let ragdolling = false;
+  let ragdollStartedAt = 0;
+  let throwVelocity = new THREE.Vector3();
+  let angularVelocity = 0;
+  let lastDragPoint = new THREE.Vector3();
+  let lastDragTime = 0;
   let lastFrameTime = 0;
   let lastInteractionTime = performance.now();
   let nextBlink = performance.now() + 1800;
@@ -107,6 +114,20 @@ function initHero() {
   let idleUntil = 0;
   let blinkUntil = 0;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const raycaster = new THREE.Raycaster();
+  const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+  const pointerPoint = new THREE.Vector3();
+
+  const getPointerPoint = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    pointerPoint.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+      0.5
+    );
+    raycaster.setFromCamera(pointerPoint, camera);
+    return raycaster.ray.intersectPlane(dragPlane, new THREE.Vector3());
+  };
 
   canvas.addEventListener("pointermove", (event) => {
     lastInteractionTime = performance.now();
@@ -117,12 +138,67 @@ function initHero() {
     const rect = canvas.getBoundingClientRect();
     targetPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     targetPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    if (draggingPet) {
+      const point = getPointerPoint(event);
+      if (point) {
+        character.position.x = point.x;
+        character.position.y = point.y - 0.4;
+        const now = performance.now();
+        const elapsed = Math.max(16, now - lastDragTime);
+        throwVelocity.copy(point).sub(lastDragPoint).multiplyScalar(1000 / elapsed);
+        lastDragPoint.copy(point);
+        lastDragTime = now;
+      }
+      return;
+    }
   });
   canvas.addEventListener("pointerdown", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    pointerPoint.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+      0.5
+    );
+    raycaster.setFromCamera(pointerPoint, camera);
+    if (raycaster.intersectObject(head, false).length > 0) {
+      lastInteractionTime = performance.now();
+      draggingPet = true;
+      ragdolling = false;
+      petState = "excited";
+      const point = getPointerPoint(event);
+      if (point) {
+        lastDragPoint.copy(point);
+        character.position.x = point.x;
+        character.position.y = point.y - 0.4;
+      }
+      lastDragTime = performance.now();
+      canvas.style.cursor = "grabbing";
+      canvas.setPointerCapture(event.pointerId);
+      return;
+    }
     lastInteractionTime = performance.now();
     petState = "excited";
     clickBounce = true;
     canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener("pointerup", (event) => {
+    if (!draggingPet) return;
+    draggingPet = false;
+    ragdolling = true;
+    ragdollStartedAt = performance.now();
+    throwVelocity.y = Math.max(throwVelocity.y, 1.4);
+    angularVelocity = (throwVelocity.x >= 0 ? 1 : -1) * (2.5 + Math.abs(throwVelocity.x) * 0.35);
+    canvas.style.cursor = "grab";
+    try { canvas.releasePointerCapture(event.pointerId); } catch {}
+  });
+  canvas.addEventListener("pointercancel", () => {
+    if (!draggingPet) return;
+    draggingPet = false;
+    ragdolling = true;
+    ragdollStartedAt = performance.now();
+    throwVelocity.set(0, 1.6, 0);
+    angularVelocity = 2.5;
+    canvas.style.cursor = "grab";
   });
 
   const resize = () => {
@@ -140,7 +216,22 @@ function initHero() {
     lastFrameTime = time;
     pointer.lerp(targetPointer, 0.07);
     const floorY = -1.06;
-    if (reducedMotion) {
+    if (draggingPet) {
+      character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, 0, 0.2);
+    } else if (ragdolling) {
+      throwVelocity.y -= 9 * delta;
+      character.position.addScaledVector(throwVelocity, delta);
+      character.rotation.z += angularVelocity * delta;
+      if (time - ragdollStartedAt > 950) {
+        ragdolling = false;
+        throwVelocity.set(0, 0, 0);
+        angularVelocity = 0;
+        character.position.set(THREE.MathUtils.clamp(character.position.x, -2.8, 2.8), floorY, 0);
+        character.rotation.set(0, 0, 0);
+        petState = "idle";
+        nextPetAction = time + 500;
+      }
+    } else if (reducedMotion) {
       character.position.y = floorY;
       character.position.x = 0;
       grounded = true;
