@@ -133,6 +133,9 @@ h3 { margin-bottom: .65rem; font-size: 1rem; }
 body.viewer-page { background: #080909; }
 .viewer-shell { min-height: 100vh; display: flex; flex-direction: column; }
 .viewer-topbar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; }
+.viewer-topbar .brand { white-space: nowrap; }
+.viewer-menu-toggle { display: none; border: 1px solid var(--line); border-radius: 999px; padding: .5rem .7rem; color: var(--ink); background: transparent; cursor: pointer; font: inherit; font-size: 1rem; line-height: 1; }
+.viewer-topbar .nav-links .active { color: var(--ink); }
 .viewer-main { flex: 1; display: flex; padding: 0 1.5rem 1.5rem; }
 .viewer-canvas { position: relative; flex: 1; min-height: 78vh; overflow: hidden; border: 1px solid var(--line); background: #050606; cursor: grab; }
 .viewer-canvas.looking { cursor: grabbing; }
@@ -161,6 +164,13 @@ body.viewer-page { background: #080909; }
   .viewer-promo { flex-direction: column; }
   .model-launcher { align-items: flex-start; }
   .footer { flex-direction: column; }
+  .viewer-topbar { position: relative; padding: 1rem; }
+  .viewer-menu-toggle { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; }
+  .viewer-topbar .nav-links { position: absolute; z-index: 5; top: calc(100% - .25rem); right: 1rem; display: none; flex-direction: column; align-items: stretch; gap: 0; min-width: 150px; padding: .4rem; border: 1px solid var(--line); border-radius: .5rem; background: rgba(16,16,15,.97); box-shadow: 0 16px 30px rgba(0,0,0,.25); }
+  .viewer-topbar .nav-links.is-open { display: flex; }
+  .viewer-topbar .nav-links a { padding: .7rem .75rem; }
+  .viewer-main { min-height: 0; padding: 0 .75rem .75rem; }
+  .viewer-canvas { min-height: calc(100vh - 5rem); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -168,11 +178,20 @@ body.viewer-page { background: #080909; }
   .section-block, .sidebar, .viewer-promo { opacity: 1; transform: none; }
 }
 @media (max-width: 520px) {
+  .page-shell { width: min(100% - 1.5rem, 480px); }
   h1 { font-size: clamp(3rem, 15vw, 4.5rem); }
   .hero-actions, .contact-bar { flex-wrap: wrap; }
+  .hero { padding: 3rem 0; }
+  .hero-headline { min-height: 140px; }
+  #heroHeadline3d { height: 140px; }
+  .hero-visual { min-height: 360px; }
+  .hero-visual-label { top: .9rem; left: .9rem; }
+  .hero-hint { right: .9rem; bottom: .9rem; max-width: 65%; text-align: right; }
+  .content-layout { padding: 3.5rem 0; }
   .sidebar { display: flex; }
   .timeline-item, .education-list div { grid-template-columns: 1fr; display: grid; gap: .6rem; }
   .education-list span { text-align: left; }
-  .viewer-topbar { padding: 1rem; }
-  .viewer-main { padding: 0 .75rem .75rem; }
+  .viewer-topbar .brand { max-width: calc(100% - 3.5rem); overflow: hidden; text-overflow: ellipsis; }
+  .viewer-overlay { padding: 1rem; }
+  .overlay-card { padding: 1.35rem; }
 }

@@ -7,6 +7,8 @@ const fovRange = document.getElementById('fovRange');
 const fovValue = document.getElementById('fovValue');
 const overlayTitle = document.getElementById('overlayTitle');
 const overlayText = document.getElementById('overlayText');
+const viewerMenuToggle = document.querySelector('.viewer-menu-toggle');
+const viewerNav = document.getElementById('viewerNav');
 
 let canvas;
 let ctx;
@@ -144,6 +146,13 @@ function init() {
   window.addEventListener('resize', onResize);
   window.addEventListener('blur', onWindowBlur);
   fovRange.addEventListener('input', onFovChange);
+  if (viewerMenuToggle && viewerNav) {
+    viewerMenuToggle.addEventListener('click', () => {
+      const isOpen = viewerMenuToggle.getAttribute('aria-expanded') === 'true';
+      viewerMenuToggle.setAttribute('aria-expanded', String(!isOpen));
+      viewerNav.classList.toggle('is-open', !isOpen);
+    });
+  }
 
   onResize();
   updateUi();

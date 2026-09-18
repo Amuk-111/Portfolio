@@ -14,7 +14,11 @@
     <div class="viewer-shell">
       <header class="viewer-topbar">
         <a class="brand" href="../index.html">Thomas Secret Garden</a>
-        <nav class="nav-links">
+        <button class="viewer-menu-toggle" type="button" aria-expanded="false" aria-controls="viewerNav">
+          <span class="sr-only">Open navigation</span>
+          <span aria-hidden="true">☰</span>
+        </button>
+        <nav id="viewerNav" class="nav-links" aria-label="Viewer navigation">
           <a href="../index.html">Home</a>
           <a href="viewer.html" class="active">Model</a>
         </nav>
