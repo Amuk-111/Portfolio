@@ -134,6 +134,10 @@ function initHero() {
   let verticalVelocity = 0;
   let grounded = false;
   let clickBounce = false;
+  // Vitesse de départ d'un saut : il monte à près de quatre fois sa taille.
+  const JUMP_SPEED = 7.5;
+  let grabbedAt = 0;
+  const grabbedFrom = new THREE.Vector3();
   let draggingPet = false;
   let ragdolling = false;
   let ragdollStartedAt = 0;
@@ -316,6 +320,8 @@ function initHero() {
         character.position.y = point.y;
       }
       lastDragTime = performance.now();
+      grabbedAt = lastDragTime;
+      grabbedFrom.copy(character.position);
       canvas.style.cursor = "grabbing";
       canvas.setPointerCapture(event.pointerId);
       return;
@@ -330,10 +336,17 @@ function initHero() {
     draggingPet = false;
     ragdolling = true;
     ragdollStartedAt = performance.now();
-    throwVelocity.z = 0;
-    throwVelocity.clampLength(0, 13);
-    throwVelocity.y = Math.max(throwVelocity.y, 1.4);
-    angularVelocity = (throwVelocity.x >= 0 ? 1 : -1) * (2.5 + Math.abs(throwVelocity.x) * 0.35);
+    // Relâché vite et presque sans bouger : c'est un clic, pas un lancer → grand saut avec une vrille.
+    const isClick = performance.now() - grabbedAt < 350 && character.position.distanceTo(grabbedFrom) < 0.25;
+    if (isClick) {
+      throwVelocity.set(0, JUMP_SPEED, 0);
+      angularVelocity = (Math.random() < 0.5 ? -1 : 1) * 3.8;
+    } else {
+      throwVelocity.z = 0;
+      throwVelocity.clampLength(0, 13);
+      throwVelocity.y = Math.max(throwVelocity.y, 1.4);
+      angularVelocity = (throwVelocity.x >= 0 ? 1 : -1) * (2.5 + Math.abs(throwVelocity.x) * 0.35);
+    }
     canvas.style.cursor = "grab";
     if (pointerId !== undefined) {
       try { canvas.releasePointerCapture(pointerId); } catch {}
@@ -442,7 +455,7 @@ function initHero() {
       }
     } else {
       if (clickBounce) {
-        verticalVelocity = 4.2;
+        verticalVelocity = JUMP_SPEED;
         grounded = false;
         clickBounce = false;
         petState = "excited";
