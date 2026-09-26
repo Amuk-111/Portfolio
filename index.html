@@ -8,7 +8,7 @@
       content="Thomas Logé, junior 3D artist in Brussels: Blender and Unity modeling, rigging, animation and rendering, plus front-end HTML/CSS."
     />
     <title>Thomas Logé | 3D Artist · Blender & Unity</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260926g" />
+    <link rel="stylesheet" href="css/styles.css?v=20260926i" />
   </head>
 
   <body>
@@ -165,12 +165,22 @@
               <div class="render-grid">
                 <figure><a href="img/renders/orc.jpg"><img src="img/renders/orc.jpg" alt="Orc character model in armour" loading="lazy" /></a><figcaption>Orc — character</figcaption></figure>
                 <figure><a href="img/renders/science-lab-interior.jpg"><img src="img/renders/science-lab-interior.jpg" alt="Science lab control room interior" loading="lazy" /></a><figcaption>Science lab — interior</figcaption></figure>
-                <figure><a href="img/renders/bedroom-lighting.jpg"><img src="img/renders/bedroom-lighting.jpg" alt="Dim bedroom lit by a window at sunset" loading="lazy" /></a><figcaption>Bedroom — lighting study</figcaption></figure>
-                <figure><a href="img/renders/bookcase.jpg"><img src="img/renders/bookcase.jpg" alt="Stylized wooden bookcase with a bell" loading="lazy" /></a><figcaption>Bookcase — props</figcaption></figure>
+                <figure><a href="img/renders/bedroom-lighting.jpg?v=2"><img src="img/renders/bedroom-lighting.jpg?v=2" alt="Dim bedroom lit by a window at sunset" loading="lazy" /></a><figcaption>Bedroom — lighting study</figcaption></figure>
+                <figure><a href="img/renders/bookcase.jpg?v=2"><img src="img/renders/bookcase.jpg?v=2" alt="Stylized wooden bookcase with a bell" loading="lazy" /></a><figcaption>Bookcase — props</figcaption></figure>
                 <figure><a href="img/renders/science-lab.jpg"><img src="img/renders/science-lab.jpg" alt="Small science lab building next to a rocket" loading="lazy" /></a><figcaption>Science lab — exterior</figcaption></figure>
                 <figure><a href="img/renders/low-poly-character.jpg"><img src="img/renders/low-poly-character.jpg" alt="Low-poly character in a leather jacket and cap" loading="lazy" /></a><figcaption>Low-poly character</figcaption></figure>
-                <figure><a href="img/renders/trap.jpg"><img src="img/renders/trap.jpg" alt="Creature under a spotlight in the dark" loading="lazy" /></a><figcaption>Trap — spotlight scene</figcaption></figure>
+                <figure><a href="img/renders/trap.jpg?v=2"><img src="img/renders/trap.jpg?v=2" alt="Creature under a spotlight in the dark" loading="lazy" /></a><figcaption>Trap — spotlight scene</figcaption></figure>
               </div>
+              <dialog id="lightbox" class="lightbox" aria-label="Render viewer">
+                <button class="lightbox-close" type="button" aria-label="Close">×</button>
+                <p class="lightbox-count"></p>
+                <button class="lightbox-prev" type="button" aria-label="Previous render">‹</button>
+                <figure>
+                  <img alt="" />
+                  <figcaption></figcaption>
+                </figure>
+                <button class="lightbox-next" type="button" aria-label="Next render">›</button>
+              </dialog>
             </section>
 
             <section class="section-block" id="projects" aria-labelledby="projects-title">
@@ -233,6 +243,6 @@
     <script type="importmap">
       {"imports":{"three":"./js/libs/package/build/three.module.js"}}
     </script>
-    <script type="module" src="js/home.js?v=20260926j"></script>
+    <script type="module" src="js/home.js?v=20260926k"></script>
   </body>
 </html>

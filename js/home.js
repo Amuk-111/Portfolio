@@ -1031,8 +1031,64 @@ function initSwarm() {
   });
 }
 
+// Galerie : un clic sur un rendu l'ouvre en grand dans une fenêtre (<dialog>).
+// Flèches ← → ou glisser du doigt pour changer d'image, Échap ou clic à côté pour fermer.
+function initLightbox() {
+  const dialog = document.getElementById("lightbox");
+  const links = [...document.querySelectorAll(".render-grid a")];
+  if (!dialog || links.length === 0) return;
+  const image = dialog.querySelector("img");
+  const caption = dialog.querySelector("figcaption");
+  const count = dialog.querySelector(".lightbox-count");
+  let current = 0;
+
+  const show = (index) => {
+    current = (index + links.length) % links.length;
+    const link = links[current];
+    image.classList.remove("is-shown");
+    image.src = link.href;
+    image.alt = link.querySelector("img").alt;
+    caption.textContent = link.nextElementSibling.textContent;
+    count.textContent = `${current + 1} / ${links.length}`;
+    if (image.complete) requestAnimationFrame(() => image.classList.add("is-shown"));
+  };
+  image.addEventListener("load", () => image.classList.add("is-shown"));
+
+  links.forEach((link, index) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      show(index);
+      dialog.showModal();
+    });
+  });
+  dialog.querySelector(".lightbox-prev").addEventListener("click", () => show(current - 1));
+  dialog.querySelector(".lightbox-next").addEventListener("click", () => show(current + 1));
+  dialog.querySelector(".lightbox-close").addEventListener("click", () => dialog.close());
+
+  dialog.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowLeft") show(current - 1);
+    if (event.key === "ArrowRight") show(current + 1);
+  });
+
+  // Glisser du doigt sur téléphone.
+  let startX = 0;
+  let swiped = false;
+  dialog.addEventListener("pointerdown", (event) => { startX = event.clientX; });
+  dialog.addEventListener("pointerup", (event) => {
+    const moved = event.clientX - startX;
+    swiped = Math.abs(moved) > 50;
+    if (swiped) show(current + (moved < 0 ? 1 : -1));
+  });
+
+  // Clic sur le fond (pas sur l'image ni les boutons, et pas à la fin d'un glisser) : on ferme.
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog && !swiped) dialog.close();
+  });
+}
+
 loadModels();
 initHero();
+initLightbox();
 initDemoTabs({
   heroWaves: initWaves,
   heroGalaxy: initGalaxy,
