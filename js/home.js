@@ -699,11 +699,13 @@ function initScrollReveal() {
 
 // ── Onglets du cadre « Interactive desk study » ─────────────────
 // Chaque onglet montre un <canvas> et cache les autres.
-// Une animation dont le canvas est caché ne calcule rien.
+// Une animation ne démarre qu'au premier clic sur son onglet,
+// et une animation dont le canvas est caché ne calcule rien.
 
-function initDemoTabs() {
+function initDemoTabs(demos) {
   const tabs = document.querySelectorAll("[data-demo]");
   const hint = document.querySelector(".hero-hint");
+  const started = new Set();
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
       tabs.forEach((other) => {
@@ -712,11 +714,16 @@ function initDemoTabs() {
         document.getElementById(other.dataset.demo).hidden = !selected;
       });
       hint.textContent = tab.dataset.hint;
+      const start = demos[tab.dataset.demo];
+      if (start && !started.has(start)) {
+        started.add(start);
+        start();
+      }
     });
   });
 }
 
-// Ce que les onglets Waves et Galaxy ont en commun : le rendu, la caméra,
+// Ce que les onglets ont en commun : le rendu, la caméra,
 // la taille du canvas et la position de la souris (de -1 à 1).
 function createStage(canvas, cameraPosition) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -830,11 +837,176 @@ function initGalaxy() {
   });
 }
 
+// Blob : une goutte brillante qui ondule et se gonfle vers la souris.
+function initBlob() {
+  const canvas = document.getElementById("heroBlob");
+  if (!canvas) return;
+  const { renderer, scene, camera, pointer } = createStage(canvas, new THREE.Vector3(0, 0, 7));
+
+  scene.add(new THREE.HemisphereLight(0xfff5eb, 0x25201d, 0.8));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
+  keyLight.position.set(3, 4, 5);
+  scene.add(keyLight);
+  const orangeLight = new THREE.PointLight(0xf39a63, 6, 12);
+  const pinkLight = new THREE.PointLight(0xff5f8f, 5, 12);
+  scene.add(orangeLight, pinkLight);
+
+  const geometry = new THREE.IcosahedronGeometry(1.5, 24);
+  const blob = new THREE.Mesh(geometry, new THREE.MeshPhysicalMaterial({
+    color: 0xf39a63, roughness: 0.18, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.1
+  }));
+  scene.add(blob);
+
+  // La forme de départ : chaque point de la sphère, avant déformation.
+  const positions = geometry.attributes.position;
+  const original = positions.array.slice();
+  const vertex = new THREE.Vector3();
+  const towardMouse = new THREE.Vector3();
+
+  renderer.setAnimationLoop((time) => {
+    if (canvas.hidden) return;
+    const t = time / 1000;
+    towardMouse.set(pointer.x * 2, pointer.y * 1.5, 1.5).normalize();
+
+    for (let i = 0; i < positions.count; i++) {
+      vertex.fromArray(original, i * 3);
+      const wobble = Math.sin(vertex.x * 2 + t * 1.6) * Math.sin(vertex.y * 2.5 + t * 1.3) * Math.sin(vertex.z * 1.8 + t);
+      const bulge = Math.pow(Math.max(0, vertex.clone().normalize().dot(towardMouse)), 4);
+      vertex.multiplyScalar(1 + wobble * 0.18 + bulge * 0.35);
+      positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+    positions.needsUpdate = true;
+    geometry.computeVertexNormals();
+
+    blob.rotation.y = t * 0.2;
+    orangeLight.position.set(Math.cos(t) * 4, 2, Math.sin(t) * 4);
+    pinkLight.position.set(Math.cos(t + Math.PI) * 4, -2, Math.sin(t + Math.PI) * 4);
+    renderer.render(scene, camera);
+  });
+}
+
+// Tunnel : on vole dans un tube lumineux qui change de couleur. Clic maintenu = plus vite.
+function initTunnel() {
+  const canvas = document.getElementById("heroTunnel");
+  if (!canvas) return;
+  const { renderer, scene, camera, pointer } = createStage(canvas, new THREE.Vector3(0, 0, 1));
+  scene.fog = new THREE.Fog(0x161514, 1, 14);
+
+  // Un circuit fermé qui monte et descend : la caméra le parcourt en boucle.
+  const circuit = new THREE.CatmullRomCurve3(
+    Array.from({ length: 12 }, (_, i) => {
+      const angle = (i / 12) * Math.PI * 2;
+      return new THREE.Vector3(Math.cos(angle) * 12, Math.sin(angle * 3) * 3, Math.sin(angle) * 12);
+    }),
+    true
+  );
+  const tube = new THREE.Mesh(
+    new THREE.TubeGeometry(circuit, 500, 1.3, 24, true),
+    new THREE.MeshBasicMaterial({ color: 0xf39a63, wireframe: true, transparent: true, opacity: 0.6 })
+  );
+  scene.add(tube);
+
+  let speed = 0.02;
+  let targetSpeed = 0.02;
+  canvas.addEventListener("pointerdown", () => { targetSpeed = 0.09; });
+  canvas.addEventListener("pointerup", () => { targetSpeed = 0.02; });
+  canvas.addEventListener("pointerleave", () => { targetSpeed = 0.02; });
+
+  let progress = 0;
+  const ahead = new THREE.Vector3();
+  const clock = new THREE.Clock();
+  renderer.setAnimationLoop(() => {
+    const delta = Math.min(clock.getDelta(), 0.05);
+    if (canvas.hidden) return;
+    speed += (targetSpeed - speed) * 0.05;
+    progress = (progress + speed * delta) % 1;
+
+    camera.position.copy(circuit.getPointAt(progress));
+    circuit.getPointAt((progress + 0.01) % 1, ahead);
+    ahead.x += pointer.x * 0.8;
+    ahead.y += pointer.y * 0.8;
+    camera.lookAt(ahead);
+
+    tube.material.color.setHSL((0.05 + progress * 2) % 1, 0.85, 0.6);
+    renderer.render(scene, camera);
+  });
+}
+
+// Swarm : 3000 particules attirées par la souris, qui tournent autour. Clic = explosion.
+function initSwarm() {
+  const canvas = document.getElementById("heroSwarm");
+  if (!canvas) return;
+  const { renderer, scene, camera, pointer } = createStage(canvas, new THREE.Vector3(0, 0, 8));
+
+  const count = 3000;
+  const positions = new Float32Array(count * 3);
+  const velocities = new Float32Array(count * 3);
+  for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 8;
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  const swarm = new THREE.Points(geometry, new THREE.PointsMaterial({
+    color: 0xffb27a, size: 0.05, depthWrite: false, blending: THREE.AdditiveBlending
+  }));
+  scene.add(swarm);
+
+  // Le point visé : là où la souris croise le plan face à la caméra.
+  const target = new THREE.Vector3();
+  const facing = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+  const raycaster = new THREE.Raycaster();
+
+  let explode = false;
+  canvas.addEventListener("pointerdown", () => { explode = true; });
+
+  const clock = new THREE.Clock();
+  renderer.setAnimationLoop(() => {
+    const delta = Math.min(clock.getDelta(), 0.05);
+    if (canvas.hidden) return;
+    raycaster.setFromCamera(pointer, camera);
+    raycaster.ray.intersectPlane(facing, target);
+
+    for (let i = 0; i < count; i++) {
+      const p = i * 3;
+      const dx = target.x - positions[p];
+      const dy = target.y - positions[p + 1];
+      const dz = target.z - positions[p + 2];
+      if (explode) {
+        const length = Math.hypot(dx, dy, dz) || 1;
+        const kick = 6 + Math.random() * 6;
+        velocities[p] -= (dx / length) * kick;
+        velocities[p + 1] -= (dy / length) * kick;
+        velocities[p + 2] -= (dz / length) * kick;
+      }
+      // Attirée vers la souris, plus une petite poussée de côté qui la fait tourner.
+      velocities[p] += (dx * 1.5 - dy * 1.2) * delta;
+      velocities[p + 1] += (dy * 1.5 + dx * 1.2) * delta;
+      velocities[p + 2] += dz * 1.5 * delta;
+      // Un peu de hasard : sans lui, tout l'essaim finirait en un seul point.
+      velocities[p] += (Math.random() - 0.5) * 6 * delta;
+      velocities[p + 1] += (Math.random() - 0.5) * 6 * delta;
+      velocities[p + 2] += (Math.random() - 0.5) * 6 * delta;
+      velocities[p] *= 0.97;
+      velocities[p + 1] *= 0.97;
+      velocities[p + 2] *= 0.97;
+      positions[p] += velocities[p] * delta;
+      positions[p + 1] += velocities[p + 1] * delta;
+      positions[p + 2] += velocities[p + 2] * delta;
+    }
+    explode = false;
+    geometry.attributes.position.needsUpdate = true;
+    renderer.render(scene, camera);
+  });
+}
+
 loadModels();
 initHero();
-initDemoTabs();
-initWaves();
-initGalaxy();
+initDemoTabs({
+  heroWaves: initWaves,
+  heroGalaxy: initGalaxy,
+  heroBlob: initBlob,
+  heroTunnel: initTunnel,
+  heroSwarm: initSwarm,
+});
 initHeadline();
 initProjectCards();
 initScrollReveal();

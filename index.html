@@ -8,7 +8,7 @@
       content="Thomas Logé is a full-stack developer and 3D specialist based in Brussels."
     />
     <title>Thomas Logé | Full-stack developer & 3D specialist</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260926d" />
+    <link rel="stylesheet" href="css/styles.css?v=20260926e" />
   </head>
 
   <body>
@@ -56,11 +56,17 @@
               <button type="button" role="tab" aria-selected="true" data-demo="hero3dText" data-hint="Grab the cube · throw it · click to make it jump">Cube</button>
               <button type="button" role="tab" aria-selected="false" data-demo="heroWaves" data-hint="Move your cursor over the water">Waves</button>
               <button type="button" role="tab" aria-selected="false" data-demo="heroGalaxy" data-hint="Move your cursor to tilt it · click for a boost">Galaxy</button>
+              <button type="button" role="tab" aria-selected="false" data-demo="heroBlob" data-hint="Move your cursor · the blob reaches for it">Blob</button>
+              <button type="button" role="tab" aria-selected="false" data-demo="heroTunnel" data-hint="Steer with your cursor · hold the click to go faster">Tunnel</button>
+              <button type="button" role="tab" aria-selected="false" data-demo="heroSwarm" data-hint="Move to attract the swarm · click to explode it">Swarm</button>
             </div>
             <div class="hero-title-3d">
               <canvas id="hero3dText" aria-label="Interactive 3D cube character"></canvas>
               <canvas id="heroWaves" aria-label="Animated wave field" hidden></canvas>
               <canvas id="heroGalaxy" aria-label="Spiral galaxy of particles" hidden></canvas>
+              <canvas id="heroBlob" aria-label="Glossy morphing blob" hidden></canvas>
+              <canvas id="heroTunnel" aria-label="Flight through a glowing tunnel" hidden></canvas>
+              <canvas id="heroSwarm" aria-label="Particle swarm following the cursor" hidden></canvas>
             </div>
             <p class="hero-hint">Grab the cube · throw it · click to make it jump</p>
           </div>
@@ -216,6 +222,6 @@
     <script type="importmap">
       {"imports":{"three":"./js/libs/package/build/three.module.js"}}
     </script>
-    <script type="module" src="js/home.js?v=20260926e"></script>
+    <script type="module" src="js/home.js?v=20260926f"></script>
   </body>
 </html>
