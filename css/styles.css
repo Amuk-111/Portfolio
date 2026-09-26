@@ -68,6 +68,11 @@ h3 { margin-bottom: .65rem; font-size: 1rem; }
   border: 1px solid var(--line);
   border-bottom: 0;
 }
+.hero-title-3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-tabs { position: absolute; z-index: 2; top: 2.6rem; left: 1.25rem; display: flex; gap: .4rem; }
+.hero-tabs button { padding: .25rem .7rem; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.hero-tabs button:hover, .hero-tabs button:focus-visible { color: var(--ink); }
+.hero-tabs button[aria-selected="true"] { border-color: var(--orange); background: rgba(243,154,99,.14); color: var(--ink); }
 #hero3dText { width: 100%; height: 100%; cursor: grab; touch-action: none; }
 #hero3dText:active { cursor: grabbing; }
 .section-rule { border-top: 1px solid var(--line); }
@@ -195,6 +200,7 @@ body.viewer-page { background: #080909; }
   #heroHeadline3d { height: 140px; }
   .hero-visual { min-height: 360px; }
   .hero-visual-label { top: .9rem; left: .9rem; }
+  .hero-tabs { top: 2.2rem; left: .9rem; }
   .hero-hint { right: .9rem; bottom: .9rem; max-width: 65%; text-align: right; }
   .content-layout { padding: 3.5rem 0; }
   .sidebar { display: flex; }

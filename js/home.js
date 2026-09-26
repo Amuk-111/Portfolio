@@ -363,6 +363,7 @@ function initHero() {
 
   const animate = (time) => {
     requestAnimationFrame(animate);
+    if (canvas.hidden) return;
     const delta = Math.min(0.04, (time - (lastFrameTime || time)) / 1000);
     lastFrameTime = time;
     pointer.lerp(targetPointer, 0.07);
@@ -696,8 +697,144 @@ function initScrollReveal() {
   revealItems.forEach((item) => observer.observe(item));
 }
 
+// ── Onglets du cadre « Interactive desk study » ─────────────────
+// Chaque onglet montre un <canvas> et cache les autres.
+// Une animation dont le canvas est caché ne calcule rien.
+
+function initDemoTabs() {
+  const tabs = document.querySelectorAll("[data-demo]");
+  const hint = document.querySelector(".hero-hint");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      tabs.forEach((other) => {
+        const selected = other === tab;
+        other.setAttribute("aria-selected", String(selected));
+        document.getElementById(other.dataset.demo).hidden = !selected;
+      });
+      hint.textContent = tab.dataset.hint;
+    });
+  });
+}
+
+// Ce que les onglets Waves et Galaxy ont en commun : le rendu, la caméra,
+// la taille du canvas et la position de la souris (de -1 à 1).
+function createStage(canvas, cameraPosition) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.copy(cameraPosition);
+  camera.lookAt(0, 0, 0);
+
+  const resize = () => {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    renderer.setSize(rect.width, rect.height, false);
+    camera.aspect = rect.width / rect.height;
+    camera.updateProjectionMatrix();
+  };
+  window.addEventListener("resize", resize);
+  resize();
+
+  const pointer = new THREE.Vector2();
+  canvas.addEventListener("pointermove", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  });
+
+  return { renderer, scene, camera, pointer };
+}
+
+// Waves : une grille de points qui ondule, et des ronds dans l'eau sous la souris.
+function initWaves() {
+  const canvas = document.getElementById("heroWaves");
+  if (!canvas) return;
+  const { renderer, scene, camera, pointer } = createStage(canvas, new THREE.Vector3(0, 4, 7));
+
+  const geometry = new THREE.PlaneGeometry(12, 8, 90, 60);
+  geometry.rotateX(-Math.PI / 2);
+  const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xf39a63, size: 0.05 }));
+  scene.add(points);
+
+  const positions = geometry.attributes.position;
+  const water = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const raycaster = new THREE.Raycaster();
+  const touch = new THREE.Vector3();
+
+  renderer.setAnimationLoop((time) => {
+    if (canvas.hidden) return;
+    const t = time / 1000;
+
+    // Où la souris touche l'eau.
+    raycaster.setFromCamera(pointer, camera);
+    raycaster.ray.intersectPlane(water, touch);
+
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i);
+      const z = positions.getZ(i);
+      const swell = Math.sin(x * 0.8 + t) * Math.cos(z * 0.8 + t * 0.7) * 0.25;
+      const distance = Math.hypot(x - touch.x, z - touch.z);
+      const ripple = Math.sin(distance * 4 - t * 6) * Math.exp(-distance * 0.8) * 0.35;
+      positions.setY(i, swell + ripple);
+    }
+    positions.needsUpdate = true;
+    renderer.render(scene, camera);
+  });
+}
+
+// Galaxy : 6000 points en spirale à trois bras, qui tourne. Clic = accélération.
+function initGalaxy() {
+  const canvas = document.getElementById("heroGalaxy");
+  if (!canvas) return;
+  const { renderer, scene, camera, pointer } = createStage(canvas, new THREE.Vector3(0, 3, 7));
+
+  const count = 6000;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const centreColor = new THREE.Color(0xffd2a0);
+  const edgeColor = new THREE.Color(0xa2461d);
+  // Un petit décalage au hasard, plus souvent proche de 0 que de 1.
+  const scatter = () => Math.pow(Math.random(), 3) * (Math.random() < 0.5 ? -1 : 1) * 0.6;
+
+  for (let i = 0; i < count; i++) {
+    const radius = Math.random() * 4;
+    const arm = (i % 3) * ((Math.PI * 2) / 3);
+    const angle = arm + radius * 1.2;
+    positions[i * 3] = Math.cos(angle) * radius + scatter();
+    positions[i * 3 + 1] = scatter() * 0.5;
+    positions[i * 3 + 2] = Math.sin(angle) * radius + scatter();
+    const color = centreColor.clone().lerp(edgeColor, radius / 4);
+    colors.set([color.r, color.g, color.b], i * 3);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const galaxy = new THREE.Points(geometry, new THREE.PointsMaterial({
+    size: 0.04, vertexColors: true, depthWrite: false, blending: THREE.AdditiveBlending
+  }));
+  scene.add(galaxy);
+
+  let boost = 0;
+  canvas.addEventListener("pointerdown", () => { boost = 3; });
+
+  const clock = new THREE.Clock();
+  renderer.setAnimationLoop(() => {
+    const delta = Math.min(clock.getDelta(), 0.05);
+    if (canvas.hidden) return;
+    boost *= 0.97;
+    galaxy.rotation.y += delta * (0.15 + boost);
+    galaxy.rotation.x = THREE.MathUtils.lerp(galaxy.rotation.x, pointer.y * 0.4, 0.05);
+    galaxy.rotation.z = THREE.MathUtils.lerp(galaxy.rotation.z, pointer.x * 0.3, 0.05);
+    renderer.render(scene, camera);
+  });
+}
+
 loadModels();
 initHero();
+initDemoTabs();
+initWaves();
+initGalaxy();
 initHeadline();
 initProjectCards();
 initScrollReveal();

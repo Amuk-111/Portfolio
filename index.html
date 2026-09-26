@@ -8,7 +8,7 @@
       content="Thomas Logé is a full-stack developer and 3D specialist based in Brussels."
     />
     <title>Thomas Logé | Full-stack developer & 3D specialist</title>
-    <link rel="stylesheet" href="css/styles.css?v=20260926c" />
+    <link rel="stylesheet" href="css/styles.css?v=20260926d" />
   </head>
 
   <body>
@@ -52,8 +52,15 @@
 
           <div class="hero-visual" aria-label="Interactive 3D introduction">
             <div class="hero-visual-label"><span class="status-dot"></span> Interactive desk study</div>
+            <div class="hero-tabs" role="tablist" aria-label="Animations">
+              <button type="button" role="tab" aria-selected="true" data-demo="hero3dText" data-hint="Grab the cube · throw it · click to make it jump">Cube</button>
+              <button type="button" role="tab" aria-selected="false" data-demo="heroWaves" data-hint="Move your cursor over the water">Waves</button>
+              <button type="button" role="tab" aria-selected="false" data-demo="heroGalaxy" data-hint="Move your cursor to tilt it · click for a boost">Galaxy</button>
+            </div>
             <div class="hero-title-3d">
               <canvas id="hero3dText" aria-label="Interactive 3D cube character"></canvas>
+              <canvas id="heroWaves" aria-label="Animated wave field" hidden></canvas>
+              <canvas id="heroGalaxy" aria-label="Spiral galaxy of particles" hidden></canvas>
             </div>
             <p class="hero-hint">Grab the cube · throw it · click to make it jump</p>
           </div>
@@ -209,6 +216,6 @@
     <script type="importmap">
       {"imports":{"three":"./js/libs/package/build/three.module.js"}}
     </script>
-    <script type="module" src="js/home.js?v=20260926d"></script>
+    <script type="module" src="js/home.js?v=20260926e"></script>
   </body>
 </html>
