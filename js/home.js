@@ -863,22 +863,42 @@ function initBlob() {
   const vertex = new THREE.Vector3();
   const towardMouse = new THREE.Vector3();
 
+  // Clic : « énergie » à fond. Elle hérisse la goutte de pointes, la fait
+  // tourner, puis retombe doucement. Chaque clic passe à la couleur suivante.
+  const colors = [0xf39a63, 0xff5f8f, 0x8b5cf6, 0x2dd4bf, 0xfacc15].map((hex) => new THREE.Color(hex));
+  let colorIndex = 0;
+  let energy = 0;
+  let spin = 0;
+  canvas.addEventListener("pointerdown", () => {
+    energy = 1;
+    colorIndex = (colorIndex + 1) % colors.length;
+  });
+
   renderer.setAnimationLoop((time) => {
     if (canvas.hidden) return;
     const t = time / 1000;
+    energy *= 0.965;
+    spin += energy * 0.12;
     towardMouse.set(pointer.x * 2, pointer.y * 1.5, 1.5).normalize();
 
+    const frequency = 1 + energy * 3;
+    const amplitude = 0.18 + energy * 0.6;
     for (let i = 0; i < positions.count; i++) {
       vertex.fromArray(original, i * 3);
-      const wobble = Math.sin(vertex.x * 2 + t * 1.6) * Math.sin(vertex.y * 2.5 + t * 1.3) * Math.sin(vertex.z * 1.8 + t);
+      const wobble =
+        Math.sin(vertex.x * 2 * frequency + t * 1.6) *
+        Math.sin(vertex.y * 2.5 * frequency + t * 1.3) *
+        Math.sin(vertex.z * 1.8 * frequency + t);
       const bulge = Math.pow(Math.max(0, vertex.clone().normalize().dot(towardMouse)), 4);
-      vertex.multiplyScalar(1 + wobble * 0.18 + bulge * 0.35);
+      vertex.multiplyScalar(1 + wobble * amplitude + bulge * 0.35);
       positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
     }
     positions.needsUpdate = true;
     geometry.computeVertexNormals();
 
-    blob.rotation.y = t * 0.2;
+    blob.material.color.lerp(colors[colorIndex], 0.08);
+    blob.scale.setScalar(1 + energy * 0.12);
+    blob.rotation.y = t * 0.2 + spin;
     orangeLight.position.set(Math.cos(t) * 4, 2, Math.sin(t) * 4);
     pinkLight.position.set(Math.cos(t + Math.PI) * 4, -2, Math.sin(t + Math.PI) * 4);
     renderer.render(scene, camera);
