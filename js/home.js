@@ -76,35 +76,57 @@ function initHero() {
     new THREE.BoxGeometry(0.8, 0.8, 0.8),
     new THREE.MeshStandardMaterial({ color: 0xf39a63, roughness: 0.48 })
   );
-  head.position.y = 0.4;
-  character.add(head);
+  const body = new THREE.Group();
+  character.add(body);
+  body.add(head);
 
-  const mouth = new THREE.Mesh(
-    new THREE.BoxGeometry(0.24, 0.07, 0.025),
-    new THREE.MeshBasicMaterial({ color: 0x241713 })
-  );
-  mouth.position.set(0, 0.28, 0.414);
-  character.add(mouth);
-  const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x241713 });
-  const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.1, 0.025), eyeMaterial);
-  const rightEye = leftEye.clone();
-  leftEye.position.set(-0.17, 0.53, 0.414);
-  rightEye.position.set(0.17, 0.53, 0.414);
-  character.add(leftEye, rightEye);
-  const crossMaterial = new THREE.MeshBasicMaterial({ color: 0x241713 });
-  const crossEyes = [-0.17, 0.17].map((x) => {
+  const ink = new THREE.MeshBasicMaterial({ color: 0x2a1a14 });
+  const faceZ = 0.402;
+
+  // Petit sourire : un demi-tore retourné.
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.014, 8, 24, Math.PI), ink);
+  mouth.rotation.z = Math.PI;
+  mouth.position.set(0, -0.07, faceZ);
+  body.add(mouth);
+
+  // Grands yeux ronds avec un reflet : c'est le reflet qui fait « mignon ».
+  const shine = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const makeEye = (x) => {
+    const eye = new THREE.Mesh(new THREE.CircleGeometry(0.075, 32), ink);
+    eye.position.set(x, 0.07, faceZ);
+    eye.scale.y = 1.12;
+    const glint = new THREE.Mesh(new THREE.CircleGeometry(0.026, 16), shine);
+    glint.position.set(0.024, 0.028, 0.001);
+    const glintSmall = new THREE.Mesh(new THREE.CircleGeometry(0.012, 12), shine);
+    glintSmall.position.set(-0.022, -0.026, 0.001);
+    eye.add(glint, glintSmall);
+    body.add(eye);
+    return eye;
+  };
+  const leftEye = makeEye(-0.155);
+  const rightEye = makeEye(0.155);
+
+  const blush = new THREE.MeshBasicMaterial({ color: 0xff8a8a, transparent: true, opacity: 0.55, depthWrite: false });
+  [-0.255, 0.255].forEach((x) => {
+    const cheek = new THREE.Mesh(new THREE.CircleGeometry(0.058, 24), blush);
+    cheek.position.set(x, -0.04, faceZ);
+    cheek.scale.y = 0.62;
+    body.add(cheek);
+  });
+
+  const crossEyes = [-0.155, 0.155].map((x) => {
     const cross = new THREE.Group();
-    const diagonalA = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.025, 0.025), crossMaterial);
+    const diagonalA = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.026, 0.004), ink);
     const diagonalB = diagonalA.clone();
     diagonalA.rotation.z = Math.PI / 4;
     diagonalB.rotation.z = -Math.PI / 4;
     cross.add(diagonalA, diagonalB);
-    cross.position.set(x, 0.53, 0.416);
+    cross.position.set(x, 0.07, faceZ + 0.002);
     cross.visible = false;
-    character.add(cross);
+    body.add(cross);
     return cross;
   });
-  character.position.set(-2.8, 4.2, 0);
+  character.position.set(-2.8, 4.6, 0);
   scene.add(character);
   const pointer = new THREE.Vector2();
   const targetPointer = new THREE.Vector2();
@@ -119,8 +141,6 @@ function initHero() {
   let angularVelocity = 0;
   let lastDragPoint = new THREE.Vector3();
   let lastDragTime = 0;
-  let groundImpactAt = 0;
-  let respawnAt = 0;
   let lastFrameTime = 0;
   let lastInteractionTime = performance.now();
   let nextBlink = performance.now() + 1800;
@@ -132,6 +152,106 @@ function initHero() {
   const raycaster = new THREE.Raycaster();
   const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const pointerPoint = new THREE.Vector3();
+
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.55, 32),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4, depthWrite: false })
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = -1.065;
+  scene.add(shadow);
+
+  const glowCanvas = document.createElement("canvas");
+  glowCanvas.width = glowCanvas.height = 64;
+  const glowContext = glowCanvas.getContext("2d");
+  const glowGradient = glowContext.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glowGradient.addColorStop(0, "rgba(255,255,255,1)");
+  glowGradient.addColorStop(0.35, "rgba(255,200,150,0.8)");
+  glowGradient.addColorStop(1, "rgba(255,140,60,0)");
+  glowContext.fillStyle = glowGradient;
+  glowContext.fillRect(0, 0, 64, 64);
+
+  const SPARKS = 260;
+  const sparkPosition = new Float32Array(SPARKS * 3);
+  const sparkColor = new Float32Array(SPARKS * 4);
+  const sparkVelocity = new Float32Array(SPARKS * 3);
+  const sparkLife = new Float32Array(SPARKS);
+  const sparkMaxLife = new Float32Array(SPARKS).fill(1);
+  const sparkGeometry = new THREE.BufferGeometry();
+  sparkGeometry.setAttribute("position", new THREE.BufferAttribute(sparkPosition, 3));
+  sparkGeometry.setAttribute("color", new THREE.BufferAttribute(sparkColor, 4));
+  const sparks = new THREE.Points(sparkGeometry, new THREE.PointsMaterial({
+    size: 0.18, map: new THREE.CanvasTexture(glowCanvas), vertexColors: true,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+  }));
+  sparks.frustumCulled = false;
+  scene.add(sparks);
+  const sparkPalette = [new THREE.Color(0xffd2a0), new THREE.Color(0xf39a63), new THREE.Color(0xffffff), new THREE.Color(0xff7a3d)];
+  let nextSpark = 0;
+  const emit = (x, y, z, vx, vy, vz, life) => {
+    const i = nextSpark;
+    nextSpark = (nextSpark + 1) % SPARKS;
+    const color = sparkPalette[Math.floor(Math.random() * sparkPalette.length)];
+    sparkPosition.set([x, y, z], i * 3);
+    sparkVelocity.set([vx, vy, vz], i * 3);
+    sparkColor.set([color.r, color.g, color.b, 1], i * 4);
+    sparkLife[i] = sparkMaxLife[i] = life;
+  };
+
+  const rings = Array.from({ length: 4 }, () => {
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.82, 1, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0xf39a63, transparent: true, opacity: 0, depthWrite: false,
+        blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+      })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = -1.055;
+    ring.userData = { age: 1, power: 0 };
+    scene.add(ring);
+    return ring;
+  });
+  let nextRing = 0;
+
+  let squash = 0;
+  let squashVelocity = 0;
+  let shake = 0;
+  let flash = 0;
+  let dizzyUntil = 0;
+  const baseCamera = camera.position.clone();
+  const baseOrange = orangeLight.intensity;
+
+  // Écrasement, étincelles, onde au sol, secousse, flash : tout part d'ici.
+  const impact = (speed, x, y, time, wall = 0) => {
+    if (reducedMotion || speed < 1.5) return;
+    const s = Math.min(speed / 9, 1);
+    if (!wall) squashVelocity += 9 * s;
+    shake = Math.max(shake, 0.22 * s);
+    flash = Math.max(flash, s);
+    if (s > 0.5) dizzyUntil = time + 1200;
+    const count = Math.round(10 + 45 * s);
+    for (let n = 0; n < count; n++) {
+      const angle = Math.random() * Math.PI * 2;
+      const burst = (1 + Math.random() * 4.5) * (0.4 + s);
+      if (wall) {
+        emit(x, y + (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.4,
+          -wall * burst * Math.random(), (Math.random() - 0.2) * burst, Math.sin(angle) * burst * 0.4,
+          0.4 + Math.random() * 0.5);
+      } else {
+        emit(x + (Math.random() - 0.5) * 0.6, y + 0.03, (Math.random() - 0.5) * 0.5,
+          Math.cos(angle) * burst, (0.6 + Math.random()) * burst, Math.sin(angle) * burst * 0.5,
+          0.5 + Math.random() * 0.7);
+      }
+    }
+    if (!wall) {
+      const ring = rings[nextRing];
+      nextRing = (nextRing + 1) % rings.length;
+      ring.position.x = x;
+      ring.userData.age = 0;
+      ring.userData.power = s;
+    }
+  };
 
   const getPointerPoint = (event) => {
     const rect = canvas.getBoundingClientRect();
@@ -154,10 +274,15 @@ function initHero() {
     targetPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     targetPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     if (draggingPet) {
+      // La capture du pointeur suit la souris hors du cadre : on lâche nous-mêmes.
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+        releasePet(event.pointerId);
+        return;
+      }
       const point = getPointerPoint(event);
       if (point) {
         character.position.x = point.x;
-        character.position.y = point.y - 0.4;
+        character.position.y = point.y;
         const now = performance.now();
         const elapsed = Math.max(16, now - lastDragTime);
         throwVelocity.copy(point).sub(lastDragPoint).multiplyScalar(1000 / elapsed);
@@ -179,8 +304,7 @@ function initHero() {
       lastInteractionTime = performance.now();
       draggingPet = true;
       ragdolling = false;
-      groundImpactAt = 0;
-      respawnAt = 0;
+      dizzyUntil = 0;
       crossEyes.forEach((cross) => { cross.visible = false; });
       leftEye.visible = true;
       rightEye.visible = true;
@@ -189,7 +313,7 @@ function initHero() {
       if (point) {
         lastDragPoint.copy(point);
         character.position.x = point.x;
-        character.position.y = point.y - 0.4;
+        character.position.y = point.y;
       }
       lastDragTime = performance.now();
       canvas.style.cursor = "grabbing";
@@ -201,16 +325,23 @@ function initHero() {
     clickBounce = true;
     canvas.setPointerCapture(event.pointerId);
   });
-  canvas.addEventListener("pointerup", (event) => {
+  const releasePet = (pointerId) => {
     if (!draggingPet) return;
     draggingPet = false;
     ragdolling = true;
     ragdollStartedAt = performance.now();
+    throwVelocity.z = 0;
+    throwVelocity.clampLength(0, 13);
     throwVelocity.y = Math.max(throwVelocity.y, 1.4);
     angularVelocity = (throwVelocity.x >= 0 ? 1 : -1) * (2.5 + Math.abs(throwVelocity.x) * 0.35);
     canvas.style.cursor = "grab";
-    try { canvas.releasePointerCapture(event.pointerId); } catch {}
-  });
+    if (pointerId !== undefined) {
+      try { canvas.releasePointerCapture(pointerId); } catch {}
+    }
+  };
+  canvas.addEventListener("pointerup", (event) => releasePet(event.pointerId));
+  canvas.addEventListener("lostpointercapture", (event) => releasePet(event.pointerId));
+  window.addEventListener("blur", () => releasePet());
   canvas.addEventListener("pointercancel", () => {
     if (!draggingPet) return;
     draggingPet = false;
@@ -236,63 +367,72 @@ function initHero() {
     lastFrameTime = time;
     pointer.lerp(targetPointer, 0.07);
     const floorY = -1.06;
+    const half = 0.4;
+    const restY = floorY + half;
+    // Demi-hauteur du cube incliné : c'est son coin le plus bas qui touche le sol.
+    const reach = () => half * (Math.abs(Math.cos(character.rotation.z)) + Math.abs(Math.sin(character.rotation.z)));
     if (draggingPet) {
       character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, 0, 0.2);
     } else if (ragdolling) {
-      if (groundImpactAt === 0) {
-        throwVelocity.y -= 9 * delta;
-        character.position.addScaledVector(throwVelocity, delta);
-        character.rotation.z += angularVelocity * delta;
-      }
+      throwVelocity.y -= 9 * delta;
+      character.position.addScaledVector(throwVelocity, delta);
+      character.rotation.z += angularVelocity * delta;
+
       if (character.position.x > 2.8 || character.position.x < -2.8) {
+        const wall = Math.sign(character.position.x);
+        impact(Math.abs(throwVelocity.x), wall * 3.2, character.position.y, time, wall);
         character.position.x = THREE.MathUtils.clamp(character.position.x, -2.8, 2.8);
         throwVelocity.x *= -0.65;
         angularVelocity *= -0.75;
       }
-      if (character.position.y <= floorY && groundImpactAt === 0) {
-        const landingDirection = angularVelocity === 0 ? 1 : Math.sign(angularVelocity);
-        character.position.y = floorY + 0.4;
-        throwVelocity.y = 0;
-        throwVelocity.x *= 0.65;
-        angularVelocity = 0;
-        character.rotation.z = landingDirection * Math.PI / 2;
-        groundImpactAt = time;
-        leftEye.visible = false;
-        rightEye.visible = false;
-        crossEyes.forEach((cross) => { cross.visible = true; });
+      const speed = throwVelocity.length();
+      if (!reducedMotion && speed > 2.5) {
+        for (let n = 0; n < 2; n++) {
+          emit(
+            character.position.x + (Math.random() - 0.5) * 0.5,
+            character.position.y + (Math.random() - 0.5) * 0.5,
+            (Math.random() - 0.5) * 0.3,
+            -throwVelocity.x * 0.08, -throwVelocity.y * 0.08 + 0.4, 0,
+            0.35 + Math.random() * 0.25
+          );
+        }
       }
-      if (groundImpactAt > 0) {
-        character.position.y = floorY + 0.4;
+      // Plafond au bord haut du cadre : un lancer vif ne fait plus sortir le cube de l'image.
+      const ceilingY = 3.85;
+      if (character.position.y + reach() >= ceilingY && throwVelocity.y > 0) {
+        character.position.y = ceilingY - reach();
+        shake = Math.max(shake, 0.06);
+        throwVelocity.y *= -0.5;
       }
-      if (groundImpactAt > 0 && time - groundImpactAt > 1900 && respawnAt === 0) {
-        character.visible = false;
-        respawnAt = time + 500;
-      }
-      if (respawnAt > 0 && time >= respawnAt) {
-        ragdolling = false;
-        character.visible = true;
-        throwVelocity.set(0, 0, 0);
-        angularVelocity = 0;
-        character.position.set(THREE.MathUtils.randFloat(-2.4, 2.4), 4.2, 0);
-        character.rotation.set(0, 0, 0);
-        groundImpactAt = 0;
-        respawnAt = 0;
-        grounded = false;
-        petState = "falling";
-        leftEye.visible = true;
-        rightEye.visible = true;
-        crossEyes.forEach((cross) => { cross.visible = false; });
+      if (character.position.y - reach() <= floorY && throwVelocity.y <= 0) {
+        character.position.y = floorY + reach();
+        impact(-throwVelocity.y, character.position.x, floorY, time);
+        if (throwVelocity.y < -1.2) {
+          throwVelocity.y *= -0.6;
+          throwVelocity.x *= 0.75;
+          angularVelocity = angularVelocity * 0.4 - (throwVelocity.x / half) * 0.35;
+        } else {
+          throwVelocity.set(0, 0, 0);
+          angularVelocity = 0;
+          ragdolling = false;
+          grounded = true;
+          character.rotation.z = Math.atan2(Math.sin(character.rotation.z), Math.cos(character.rotation.z));
+          petState = "idle";
+          idleUntil = time + 700;
+          nextPetAction = idleUntil;
+        }
       }
     } else if (reducedMotion) {
-      character.position.y = floorY;
+      character.position.y = restY;
       character.position.x = 0;
       grounded = true;
       petState = "idle";
     } else if (!grounded) {
       verticalVelocity -= 9 * delta;
       character.position.y += verticalVelocity * delta;
-      if (character.position.y <= floorY) {
-        character.position.y = floorY;
+      if (character.position.y <= restY) {
+        character.position.y = restY;
+        impact(-verticalVelocity, character.position.x, floorY, time);
         verticalVelocity = 0;
         grounded = true;
         petState = "idle";
@@ -333,17 +473,81 @@ function initHero() {
           nextPetAction = time + 700;
         }
       }
-      character.position.y = floorY;
+      // Se redresse sur une arête après un lancer, au lieu de sauter d'un coup à plat.
+      character.rotation.z = THREE.MathUtils.lerp(character.rotation.z, 0, 0.12);
+      character.position.y = floorY + reach();
     }
     const blinking = time < blinkUntil;
     if (!blinking && time > nextBlink) {
       blinkUntil = time + 130;
       nextBlink = time + 1800 + Math.random() * 2600;
     }
-    leftEye.scale.y = blinking ? 0.12 : 1;
-    rightEye.scale.y = blinking ? 0.12 : 1;
-    mouth.scale.x = petState === "excited" ? 1.35 : petState === "sleep" ? 0.65 : 1;
-    mouth.rotation.z = petState === "sleep" ? -0.35 : 0;
+    const eyesClosed = blinking || petState === "sleep";
+    leftEye.scale.y = rightEye.scale.y = eyesClosed ? 0.14 : 1.12;
+    const smile = petState === "excited" ? 1.35 : petState === "sleep" ? 0.7 : 1;
+    mouth.scale.set(smile, smile, 1);
+
+    const dizzy = time < dizzyUntil;
+    leftEye.visible = rightEye.visible = !dizzy;
+    crossEyes.forEach((cross) => {
+      cross.visible = dizzy;
+      if (dizzy) cross.rotation.z += delta * 9;
+    });
+
+    // Gelée : un ressort peu amorti, il s'écrase puis tremblote.
+    squashVelocity += (-squash * 260 - squashVelocity * 9) * delta;
+    squash = THREE.MathUtils.clamp(squash + squashVelocity * delta, -0.3, 0.45);
+    body.scale.set(1 + squash * 0.7, 1 - squash, 1 + squash * 0.7);
+    body.position.y = -half * squash;
+
+    const height = Math.max(0, character.position.y - reach() - floorY);
+    const shadowScale = 1 / (1 + height * 0.45);
+    shadow.position.x = character.position.x;
+    shadow.scale.set(shadowScale * (1 + squash * 0.7), shadowScale, 1);
+    shadow.material.opacity = 0.45 * shadowScale;
+
+    for (let i = 0; i < SPARKS; i++) {
+      if (sparkLife[i] <= 0) continue;
+      sparkLife[i] -= delta;
+      const p = i * 3;
+      sparkVelocity[p + 1] -= 7 * delta;
+      sparkPosition[p] += sparkVelocity[p] * delta;
+      sparkPosition[p + 1] += sparkVelocity[p + 1] * delta;
+      sparkPosition[p + 2] += sparkVelocity[p + 2] * delta;
+      if (sparkPosition[p + 1] < floorY + 0.02) {
+        sparkPosition[p + 1] = floorY + 0.02;
+        sparkVelocity[p + 1] *= -0.35;
+        sparkVelocity[p] *= 0.7;
+        sparkVelocity[p + 2] *= 0.7;
+      }
+      const fade = Math.max(sparkLife[i], 0) / sparkMaxLife[i];
+      sparkColor[i * 4 + 3] = fade;
+    }
+    sparkGeometry.attributes.position.needsUpdate = true;
+    sparkGeometry.attributes.color.needsUpdate = true;
+
+    rings.forEach((ring) => {
+      const data = ring.userData;
+      if (data.age >= 1) {
+        ring.material.opacity = 0;
+        return;
+      }
+      data.age = Math.min(1, data.age + delta * 1.4);
+      const eased = 1 - Math.pow(1 - data.age, 3);
+      ring.scale.setScalar(0.2 + eased * (1.2 + 2.6 * data.power));
+      ring.material.opacity = (1 - data.age) * 0.9 * data.power;
+    });
+
+    flash *= Math.exp(-5 * delta);
+    head.material.emissive.setRGB(0.9 * flash, 0.4 * flash, 0.15 * flash);
+    orangeLight.intensity = baseOrange + flash * 30;
+
+    shake *= Math.exp(-7 * delta);
+    camera.position.set(
+      baseCamera.x + pointer.x * 0.35 + (Math.random() - 0.5) * shake,
+      baseCamera.y + pointer.y * 0.18 + (Math.random() - 0.5) * shake,
+      baseCamera.z
+    );
     renderer.render(scene, camera);
   };
   requestAnimationFrame(animate);
