@@ -591,8 +591,8 @@ function initHeadline() {
   let previousPointer = new THREE.Vector2();
   const lines = [
     { text: "THOMAS LOGE", size: 1.1, color: 0xf7f3ed, y: 0.55 },
-    { text: "FULL-STACK DEVELOPER", size: 0.42, color: 0xf39a63, y: -0.55 },
-    { text: "REACT · TYPESCRIPT · NODE.JS · 3D", size: 0.23, color: 0xa69f96, y: -1.05 }
+    { text: "3D ARTIST", size: 0.42, color: 0xf39a63, y: -0.55 },
+    { text: "BLENDER · UNITY · HTML/CSS", size: 0.23, color: 0xa69f96, y: -1.05 }
   ];
 
   new FontLoader().load("./js/libs/package/examples/fonts/typeface/helvetiker_regular.typeface.json", (font) => {

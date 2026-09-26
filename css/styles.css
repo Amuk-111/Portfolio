@@ -118,6 +118,11 @@ h3 { margin-bottom: .65rem; font-size: 1rem; }
 .project-card.is-expanded .project-detail { grid-template-rows: 1fr; opacity: 1; margin-top: 1rem; }
 .tag-list { display: flex; flex-wrap: wrap; gap: .4rem; }
 .tag-list span { padding: .3rem .5rem; border: 1px solid var(--line); border-radius: 999px; color: var(--faint); font-size: .65rem; }
+.render-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .9rem; }
+.render-grid figure { margin: 0; }
+.render-grid img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--line); transition: border-color .2s ease; }
+.render-grid a:hover img, .render-grid a:focus-visible img { border-color: var(--orange); }
+.render-grid figcaption { margin-top: .45rem; color: var(--muted); font-size: .78rem; }
 .education-list { border-top: 1px solid var(--line); }
 .education-list div { display: flex; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); font-size: .85rem; }
 .education-list span { color: var(--muted); font-size: .78rem; text-align: right; }
